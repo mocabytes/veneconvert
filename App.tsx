@@ -23,6 +23,15 @@ type TabMode = "inicio" | "conversor" | "comparador" | "configuracion";
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
 
+// Lista de recomendaciones financieras aleatorias para rellenar el inicio
+const RECOMENDACIONES_FINANCIERAS = [
+  "Si un comercio calcula los precios a tasa BCV y tienes bolívares en tu cuenta, pagar por punto siempre será tu mejor opción. Evita cambiar a USDT a menos que la etiqueta de divisas tenga un descuento superior al 8%.",
+  "¡Atento en los comercios de Margarita! Siempre verifica que la tasa de conversión reflejada en el punto de venta coincida exactamente con la tasa oficial emitida por el BCV para el día de hoy.",
+  "Si manejas efectivo en divisas, recuerda que los vueltos en bolívares por punto de venta o pago móvil deben calcularse también a tasa oficial. Guarda tus billetes de baja denominación para pagos exactos.",
+  "Al cambiar bolívares a USDT en plataformas P2P, ten en cuenta las comisiones ocultas y el margen de compra/venta. A veces es más eficiente mantener los fondos líquidos en tu cuenta nacional si vas a gastarlos pronto.",
+  "Antes de realizar compras grandes, compara el precio de etiqueta en bolívares con el precio en dólares en efectivo. Muchos comercios ofrecen ligeros descuentos informales si pagas con billetes extranjeros.",
+];
+
 const lightTheme = {
   background: "#F4F7FB",
   surface: "#FFFFFF",
@@ -31,7 +40,7 @@ const lightTheme = {
   textPrimary: "#0F172A",
   textSecondary: "#475569",
   textMuted: "#64748B",
-  accent: "#8B5CF6",
+  accent: "#49a037",
   accentSoft: "#F5F3FF",
   success: "#0F766E",
   successBg: "#F0FDF4",
@@ -42,7 +51,7 @@ const lightTheme = {
   heroBackground: "#111827",
   heroText: "#F9FAFB",
   heroSubtext: "#D1D5DB",
-  tabBarBackground: "#0F172A",
+  tabBarBackground: "#1E293B",
 };
 
 const darkTheme = {
@@ -64,7 +73,7 @@ const darkTheme = {
   heroBackground: "#0B1220",
   heroText: "#F9FAFB",
   heroSubtext: "#CBD5E1",
-  tabBarBackground: "#020617",
+  tabBarBackground: "#0F172A",
 };
 
 function MainApp({
@@ -102,11 +111,18 @@ function MainApp({
   const [compPrecioUsdBcv, setCompPrecioUsdBcv] = useState<string>("");
   const [compPrecioDivisa, setCompPrecioDivisa] = useState<string>("");
 
-  const [nuevoNombreInput, setNuevoNombreInput] =
-    useState<string>(nombreUsuario);
+  // Estado para controlar cuándo mostrar el diagnóstico tras presionar el botón
+  const [mostrarDiagnostico, setMostrarDiagnostico] = useState<boolean>(false);
+
+  // Estado para almacenar el tip aleatorio del día
+  const [tipAleatorio, setTipAleatorio] = useState<string>("");
+
+  const nuevoNombreInput = nombreUsuario;
+  const setNuevoNombreInput = (val: string) => {};
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const limpiarCampos = () => {
     setBs("");
@@ -115,6 +131,7 @@ function MainApp({
     setCompPrecioBs("");
     setCompPrecioUsdBcv("");
     setCompPrecioDivisa("");
+    setMostrarDiagnostico(false);
   };
 
   useEffect(() => {
@@ -127,7 +144,15 @@ function MainApp({
     setResolvedTheme(nextTheme);
   }, [themeMode, colorScheme]);
 
+  // Selección de tip aleatorio al montar o cambiar a la pestaña de inicio
   useEffect(() => {
+    if (currentTab === "inicio") {
+      const indice = Math.floor(
+        Math.random() * RECOMENDACIONES_FINANCIERAS.length,
+      );
+      setTipAleatorio(RECOMENDACIONES_FINANCIERAS[indice]);
+    }
+
     fadeAnim.setValue(0);
     slideAnim.setValue(12);
     Animated.parallel([
@@ -227,6 +252,7 @@ function MainApp({
   };
 
   const handleCompBsChange = (value: string) => {
+    setMostrarDiagnostico(false); // Ocultamos si el usuario vuelve a editar para no generar confusión
     setCompPrecioBs(value);
     if (value === "" || tasas.bcv === 0) {
       setCompPrecioUsdBcv("");
@@ -236,6 +262,7 @@ function MainApp({
   };
 
   const handleCompUsdBcvChange = (value: string) => {
+    setMostrarDiagnostico(false);
     setCompPrecioUsdBcv(value);
     if (value === "" || tasas.bcv === 0) {
       setCompPrecioBs("");
@@ -244,12 +271,7 @@ function MainApp({
     setCompPrecioBs((parseFloat(value) * tasas.bcv).toFixed(2));
   };
 
-  const actualizarNombrePerfil = async () => {
-    if (nuevoNombreInput.trim().length >= 2) {
-      await AsyncStorage.setItem("user_name", nuevoNombreInput.trim());
-      alCambiarNombre(nuevoNombreInput.trim());
-    }
-  };
+  const actualizarNombrePerfil = async () => {};
 
   const resultadoComparador = analizarCompra(
     monedaOrigen,
@@ -258,6 +280,14 @@ function MainApp({
     tasas,
     comisionBinance,
   );
+
+  // Procesar y desplazar suavemente al activar el botón
+  const ejecutarAnalisis = () => {
+    setMostrarDiagnostico(true);
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   const obtenerColorCard = (rec: string) => {
     if (rec.includes("DIRECTO")) return theme.success;
@@ -272,11 +302,10 @@ function MainApp({
       style={[styles.safeArea, { backgroundColor: theme.background }]}
     >
       <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
-
-      {/* Navbar ultra limpio sin interruptores de tema */}
       <Navbar onClear={limpiarCampos} theme={theme} />
 
       <ScrollView
+        ref={scrollViewRef}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContainer}
       >
@@ -325,28 +354,30 @@ function MainApp({
                     {modoOffline ? "⚠️ Modo Offline" : "⚡ Conexión En Vivo"}
                   </Text>
                 </View>
-                {ultimaSincronizacion ? (
-                  <View
-                    style={[
-                      styles.heroPill,
-                      { backgroundColor: "rgba(255,255,255,0.12)" },
-                    ]}
-                  >
-                    <Text style={styles.heroPillText}>
-                      🕒 Sinc:{" "}
-                      {new Date(ultimaSincronizacion).toLocaleTimeString(
-                        "es-VE",
-                        { hour: "2-digit", minute: "2-digit" },
-                      )}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             </View>
 
-            <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
-              Tasas de Referencia
-            </Text>
+            {/* MEJORA 1: Encabezado de Tasas integrado con la Fecha y Hora de Sincronización */}
+            <View style={styles.headerWithSyncRow}>
+              <Text
+                style={[
+                  styles.sectionHeading,
+                  { color: theme.textPrimary, marginBottom: 0 },
+                ]}
+              >
+                Tasas de Referencia
+              </Text>
+              {ultimaSincronizacion ? (
+                <Text style={[styles.syncTimeText, { color: theme.textMuted }]}>
+                  🕒 Actualizado:{" "}
+                  {new Date(ultimaSincronizacion).toLocaleTimeString("es-VE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+              ) : null}
+            </View>
+
             <View style={styles.ratesContainer}>
               {cargandoTasas ? (
                 <View
@@ -477,10 +508,30 @@ function MainApp({
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* MEJORA 2: Sección de Tips Financieros con Selección Aleatoria Dinámica */}
+            {tipAleatorio ? (
+              <View
+                style={[
+                  styles.tipCard,
+                  {
+                    backgroundColor: theme.surfaceAlt,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={styles.tipTitle}>
+                  💡 Tip Financiero Inteligente
+                </Text>
+                <Text style={[styles.tipText, { color: theme.textSecondary }]}>
+                  {tipAleatorio}
+                </Text>
+              </View>
+            ) : null}
           </Animated.View>
         )}
 
-        {/* PESTAÑA 2: CONVERSOR PLANO */}
+        {/* PESTAÑA 2: CONVERSOR */}
         {currentTab === "conversor" && (
           <Animated.View
             style={{
@@ -596,7 +647,7 @@ function MainApp({
           </Animated.View>
         )}
 
-        {/* PESTAÑA 3: COMPARADOR PLANO SIN BOTONES EXTRA */}
+        {/* PESTAÑA 3: COMPARADOR */}
         {currentTab === "comparador" && (
           <Animated.View
             style={{
@@ -636,7 +687,10 @@ function MainApp({
                     styles.toggleButton,
                     monedaOrigen === "VES" && { backgroundColor: theme.accent },
                   ]}
-                  onPress={() => setMonedaOrigen("VES")}
+                  onPress={() => {
+                    setMonedaOrigen("VES");
+                    setMostrarDiagnostico(false);
+                  }}
                 >
                   <Text
                     style={[
@@ -654,7 +708,10 @@ function MainApp({
                       backgroundColor: theme.success,
                     },
                   ]}
-                  onPress={() => setMonedaOrigen("USD")}
+                  onPress={() => {
+                    setMonedaOrigen("USD");
+                    setMostrarDiagnostico(false);
+                  }}
                 >
                   <Text
                     style={[
@@ -748,14 +805,33 @@ function MainApp({
                     style={[styles.input, { color: theme.textPrimary }]}
                     keyboardType="numeric"
                     value={compPrecioDivisa}
-                    onChangeText={setCompPrecioDivisa}
+                    onChangeText={(val) => {
+                      setCompPrecioDivisa(val);
+                      setMostrarDiagnostico(false);
+                    }}
                     placeholder="0.00"
                     placeholderTextColor={theme.textMuted}
                   />
                 </View>
               </View>
 
-              {resultadoComparador ? (
+              {/* MEJORA 3: Botón de ejecución controlado para estabilización visual */}
+              {compPrecioBs !== "" && compPrecioDivisa !== "" ? (
+                <TouchableOpacity
+                  style={[
+                    styles.calculateButton,
+                    { backgroundColor: theme.accent },
+                  ]}
+                  onPress={ejecutarAnalisis}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.calculateButtonText}>
+                    Calcular Opción Más Barata ✨
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {mostrarDiagnostico && resultadoComparador ? (
                 <View
                   style={[
                     styles.diagnosisCard,
@@ -853,113 +929,6 @@ function MainApp({
               >
                 Configuración de la App
               </Text>
-
-              {/* Ajuste de Personalización del Nombre */}
-              <Text
-                style={[
-                  styles.label,
-                  { color: theme.textSecondary, marginBottom: 8 },
-                ]}
-              >
-                Tu Nombre de Perfil
-              </Text>
-              <View
-                style={[
-                  styles.flatInputWrapper,
-                  {
-                    borderColor: theme.border,
-                    backgroundColor: theme.surface,
-                    marginBottom: 12,
-                  },
-                ]}
-              >
-                <TextInput
-                  style={[styles.input, { color: theme.textPrimary }]}
-                  value={nuevoNombreInput}
-                  onChangeText={setNuevoNombreInput}
-                  maxLength={20}
-                  placeholder="Modifica tu nombre"
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.inlineSaveButton,
-                    { backgroundColor: theme.accent },
-                  ]}
-                  onPress={actualizarNombrePerfil}
-                >
-                  <Text style={styles.inlineSaveButtonText}>Guardar</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Selector Estético de Temas Visuales */}
-              <Text
-                style={[
-                  styles.label,
-                  {
-                    color: theme.textSecondary,
-                    marginTop: 14,
-                    marginBottom: 8,
-                  },
-                ]}
-              >
-                Tema Visual de la Interfaz
-              </Text>
-              <View
-                style={[
-                  styles.toggleContainer,
-                  { backgroundColor: theme.surfaceAlt },
-                ]}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    themeMode === "light" && { backgroundColor: theme.accent },
-                  ]}
-                  onPress={() => setThemeMode("light")}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      themeMode === "light" && styles.toggleTextActive,
-                    ]}
-                  >
-                    ☀️ Claro
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    themeMode === "dark" && { backgroundColor: theme.accent },
-                  ]}
-                  onPress={() => setThemeMode("dark")}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      themeMode === "dark" && styles.toggleTextActive,
-                    ]}
-                  >
-                    🌙 Oscuro
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    themeMode === "system" && { backgroundColor: theme.accent },
-                  ]}
-                  onPress={() => setThemeMode("system")}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      themeMode === "system" && styles.toggleTextActive,
-                    ]}
-                  >
-                    ⚙️ Auto
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
               <Text
                 style={[
                   styles.quickActionDesc,
@@ -1097,7 +1066,7 @@ const styles = StyleSheet.create({
         : RNStatusBar.currentHeight
           ? RNStatusBar.currentHeight + 45
           : 50,
-    paddingBottom: 130,
+    paddingBottom: 160,
     flexGrow: 1,
   },
   heroCard: {
@@ -1138,6 +1107,14 @@ const styles = StyleSheet.create({
   heroPills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
   heroPill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
   heroPillText: { fontSize: 11, fontWeight: "700", color: "#F3F4F6" },
+  headerWithSyncRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  syncTimeText: { fontSize: 11, fontWeight: "600", letterSpacing: 0.2 },
   sectionHeading: {
     fontSize: 15,
     fontWeight: "800",
@@ -1163,7 +1140,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     minHeight: 74,
-    justifyCerd: "center",
     justifyContent: "center",
   },
   rateLabel: {
@@ -1184,6 +1160,14 @@ const styles = StyleSheet.create({
   quickActionEmoji: { fontSize: 24, marginBottom: 6 },
   quickActionTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
   quickActionDesc: { fontSize: 11, fontWeight: "500" },
+  tipCard: { padding: 16, borderRadius: 22, borderWidth: 1, marginBottom: 10 },
+  tipTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 6,
+    color: "#8B5CF6",
+  },
+  tipText: { fontSize: 12, lineHeight: 18, fontWeight: "500" },
   flatContainer: { paddingVertical: 6, paddingHorizontal: 2, width: "100%" },
   flatInputWrapper: {
     flexDirection: "row",
@@ -1193,14 +1177,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 2,
   },
-  inlineSaveButton: {
-    paddingHorizontal: 16,
-    height: 38,
-    borderRadius: 12,
+  calculateButton: {
+    width: "100%",
+    height: 52,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 10,
+    marginBottom: 6,
+    elevation: 2,
+    boxShadow: "0px 4px 12px rgba(139, 92, 246, 0.25)",
   },
-  inlineSaveButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  calculateButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   cardLabel: {
     fontSize: 12,
     fontWeight: "700",

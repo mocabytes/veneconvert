@@ -88,15 +88,13 @@ export default function BottomTabs({
   };
 
   return (
+    /* Corregimos asignando el color estricto del tema para bloquear transparencias indeseadas */
     <View
       style={[
         styles.tabBar,
         {
-          backgroundColor: obtenerFondoConOpacidad(
-            theme.tabBarBackground,
-            "E2",
-          ),
-          borderColor: obtenerFondoConOpacidad(theme.textPrimary, "12"),
+          backgroundColor: theme.tabBarBackground,
+          borderColor: obtenerFondoConOpacidad(theme.textPrimary, "15"),
         },
       ]}
     >
@@ -116,7 +114,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 24,
     padding: 6,
-    borderRadius: 24, // Diseño moderno semi-rectangular suavizado que encaja con las tarjetas planas
+    borderRadius: 24,
     gap: 4,
     borderWidth: 1,
     shadowColor: "#000",

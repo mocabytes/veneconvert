@@ -6,10 +6,16 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#060B14",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#060B14"
+    },
+    "statusBar": {
+      "barStyle": "auto",
+      "backgroundColor": "#060B14",
+      "translucent": true
     },
     "ios": {
       "supportsTablet": false,
@@ -20,7 +26,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#060B14"
       },
-      "package": "com.mocabytes.arco"
+      "package": "com.mocabytes.arco",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
