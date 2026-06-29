@@ -8,8 +8,8 @@ import {
 } from "react-native";
 
 interface BottomTabsProps {
-  currentTab: "conversor" | "comparador";
-  setCurrentTab: (tab: "conversor" | "comparador") => void;
+  currentTab: "inicio" | "conversor" | "comparador";
+  setCurrentTab: (tab: "inicio" | "conversor" | "comparador") => void;
   theme: {
     accent: string;
     tabBarBackground: string;
@@ -40,8 +40,14 @@ export default function BottomTabs({
     ]).start();
   }, [currentTab, iconScale]);
 
+  const obtenerFondoConOpacidad = (hexColor: string, opacidadHex: string) => {
+    if (hexColor.startsWith("#"))
+      return `${hexColor.slice(0, 7)}${opacidadHex}`;
+    return hexColor;
+  };
+
   const renderTab = (
-    tab: "conversor" | "comparador",
+    tab: "inicio" | "conversor" | "comparador",
     label: string,
     icon: string,
   ) => {
@@ -52,10 +58,9 @@ export default function BottomTabs({
         key={tab}
         style={[
           styles.tabButton,
-          isActive && [
-            styles.activeTabButton,
-            { backgroundColor: `${theme.accent}22` },
-          ],
+          isActive && {
+            backgroundColor: obtenerFondoConOpacidad(theme.accent, "22"),
+          },
         ]}
         onPress={() => setCurrentTab(tab)}
         activeOpacity={0.85}
@@ -63,7 +68,6 @@ export default function BottomTabs({
         <Animated.View
           style={[
             styles.iconCircle,
-            { backgroundColor: "rgba(255,255,255,0.12)" },
             isActive && { transform: [{ scale: iconScale }] },
           ]}
         >
@@ -72,10 +76,7 @@ export default function BottomTabs({
         <Text
           style={[
             styles.tabText,
-            isActive && [
-              styles.activeTabText,
-              { color: theme.accent, fontWeight: "800" },
-            ],
+            isActive && { color: theme.accent, fontWeight: "800" },
           ]}
         >
           {label}
@@ -89,11 +90,15 @@ export default function BottomTabs({
       style={[
         styles.tabBar,
         {
-          backgroundColor: `${theme.tabBarBackground}E6`,
-          borderColor: `${theme.textPrimary}22`,
+          backgroundColor: obtenerFondoConOpacidad(
+            theme.tabBarBackground,
+            "D9",
+          ),
+          borderColor: obtenerFondoConOpacidad(theme.textPrimary, "15"),
         },
       ]}
     >
+      {renderTab("inicio", "Inicio", "🏠")}
       {renderTab("conversor", "Conversor", "↺")}
       {renderTab("comparador", "Comparador", "⚖")}
     </View>
@@ -105,16 +110,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignSelf: "center",
     width: "92%",
-    marginBottom: 10,
+    position: "absolute",
+    bottom: 24,
     padding: 6,
     borderRadius: 999,
-    gap: 6,
+    gap: 4,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 8,
   },
   tabButton: {
     flex: 1,
@@ -124,7 +130,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     minHeight: 46,
   },
-  activeTabButton: {},
   iconCircle: {
     width: 24,
     height: 24,
@@ -133,17 +138,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 2,
   },
-  iconText: {
-    color: "#F8FAFC",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  tabText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#94A3B8",
-  },
-  activeTabText: {
-    fontWeight: "700",
-  },
+  iconText: { fontSize: 13, fontWeight: "700" },
+  tabText: { fontSize: 11, fontWeight: "600", color: "#94A3B8" },
 });

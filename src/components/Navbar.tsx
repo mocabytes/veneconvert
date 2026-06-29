@@ -7,6 +7,7 @@ import {
   Platform,
   StatusBar as RNStatusBar,
   Animated,
+  Image,
 } from "react-native";
 
 interface NavbarProps {
@@ -65,6 +66,7 @@ export default function Navbar({
         styles.navbar,
         {
           backgroundColor: theme.background,
+          borderBottomColor: theme.border,
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
         },
@@ -72,12 +74,15 @@ export default function Navbar({
     >
       <View style={styles.navContainer}>
         <View style={styles.logoRow}>
-          <View style={[styles.logoBadge, { backgroundColor: theme.accent }]}>
-            <Text style={styles.logoBadgeText}>$</Text>
-          </View>
-          <View>
+          {/* Tu logotipo corporativo adaptado perfectamente al espacio */}
+          <Image
+            source={require("../../assets/favicon.png")}
+            style={styles.logoBadgeImage}
+            resizeMode="contain"
+          />
+          <View style={styles.textColumn}>
             <Text style={[styles.brandName, { color: theme.textPrimary }]}>
-              VeneConvert
+              ARCO
             </Text>
             <Text style={[styles.brandSubtitle, { color: theme.textMuted }]}>
               Cambio inteligente
@@ -88,7 +93,10 @@ export default function Navbar({
         <View style={styles.actionsRow}>
           <View style={styles.dropdownWrapper}>
             <TouchableOpacity
-              style={[styles.themeTrigger, { backgroundColor: theme.surface }]}
+              style={[
+                styles.themeTrigger,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
               onPress={() => setIsMenuOpen((prev) => !prev)}
               activeOpacity={0.85}
             >
@@ -104,7 +112,7 @@ export default function Navbar({
               <View
                 style={[
                   styles.dropdownMenu,
-                  { backgroundColor: theme.surface },
+                  { backgroundColor: theme.surface, borderColor: theme.border },
                 ]}
               >
                 {themeOptions.map((item) => {
@@ -115,7 +123,7 @@ export default function Navbar({
                       style={[
                         styles.dropdownItem,
                         isSelected && {
-                          backgroundColor: `${theme.accent}22`,
+                          backgroundColor: `${theme.accent}18`,
                         },
                       ]}
                       onPress={() => {
@@ -146,7 +154,10 @@ export default function Navbar({
 
           {onClear && (
             <TouchableOpacity
-              style={[styles.clearButton, { backgroundColor: theme.surface }]}
+              style={[
+                styles.clearButton,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
               onPress={onClear}
               activeOpacity={0.8}
             >
@@ -166,14 +177,12 @@ export default function Navbar({
 const styles = StyleSheet.create({
   navbar: {
     paddingHorizontal: 20,
-    height: Platform.OS === "web" ? 74 : 74 + (RNStatusBar.currentHeight || 0),
+    height: Platform.OS === "web" ? 76 : 76 + (RNStatusBar.currentHeight || 0),
     paddingTop: Platform.OS === "web" ? 0 : RNStatusBar.currentHeight || 0,
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 6,
+    borderBottomWidth: 1,
+    // Migración limpia a la nueva especificación boxShadow para corregir advertencias
+    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
     ...(Platform.OS === "web"
       ? {
           position: "relative" as const,
@@ -201,85 +210,79 @@ const styles = StyleSheet.create({
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
-  logoBadge: {
+  logoBadgeImage: {
     width: 36,
     height: 36,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    alignSelf: "center",
   },
-  logoBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
+  textColumn: {
+    justifyContent: "center",
   },
   brandName: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: "800",
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 12,
-    marginTop: 1,
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: -1,
+    letterSpacing: 0.2,
   },
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   dropdownWrapper: {
     position: "relative",
     zIndex: 20,
   },
   themeTrigger: {
-    flexDirection: "row",
+    width: 40,
+    height: 40,
+    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
-    gap: 6,
+    borderRadius: 14,
+    borderWidth: 1,
   },
   themeTriggerText: {
-    fontSize: 14,
-  },
-  themeTriggerLabel: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 16,
   },
   dropdownMenu: {
     position: "absolute",
-    top: "110%",
+    top: "120%",
     right: 0,
-    minWidth: 124,
+    minWidth: 130,
     padding: 6,
-    borderRadius: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    elevation: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.12)",
   },
   dropdownItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 12,
+    gap: 8,
   },
   dropdownIcon: {
-    fontSize: 13,
+    fontSize: 14,
   },
   dropdownText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   clearButton: {
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 999,
+    height: 40,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 14,
+    borderWidth: 1,
   },
   clearButtonText: {
     fontSize: 13,
