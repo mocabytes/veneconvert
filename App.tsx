@@ -62,7 +62,7 @@ const darkTheme = {
   textPrimary: "#F9FAFB",
   textSecondary: "#E5E7EB",
   textMuted: "#94A3B8",
-  accent: "#A78BFA",
+  accent: "#337a31",
   accentSoft: "rgba(167, 139, 250, 0.18)",
   success: "#34D399",
   successBg: "rgba(52, 211, 153, 0.12)",
