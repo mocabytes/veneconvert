@@ -74,7 +74,6 @@ export default function Navbar({
     >
       <View style={styles.navContainer}>
         <View style={styles.logoRow}>
-          {/* Tu logotipo corporativo adaptado perfectamente al espacio */}
           <Image
             source={require("../../assets/favicon.png")}
             style={styles.logoBadgeImage}
@@ -84,74 +83,10 @@ export default function Navbar({
             <Text style={[styles.brandName, { color: theme.textPrimary }]}>
               ARCO
             </Text>
-            <Text style={[styles.brandSubtitle, { color: theme.textMuted }]}>
-              Cambio inteligente
-            </Text>
           </View>
         </View>
 
         <View style={styles.actionsRow}>
-          <View style={styles.dropdownWrapper}>
-            <TouchableOpacity
-              style={[
-                styles.themeTrigger,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ]}
-              onPress={() => setIsMenuOpen((prev) => !prev)}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[styles.themeTriggerText, { color: theme.textPrimary }]}
-              >
-                {themeOptions.find((item) => item.value === themeMode)?.icon ||
-                  "⚙️"}
-              </Text>
-            </TouchableOpacity>
-
-            {isMenuOpen && (
-              <View
-                style={[
-                  styles.dropdownMenu,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
-              >
-                {themeOptions.map((item) => {
-                  const isSelected = themeMode === item.value;
-                  return (
-                    <TouchableOpacity
-                      key={item.value}
-                      style={[
-                        styles.dropdownItem,
-                        isSelected && {
-                          backgroundColor: `${theme.accent}18`,
-                        },
-                      ]}
-                      onPress={() => {
-                        onThemeChange(item.value);
-                        setIsMenuOpen(false);
-                      }}
-                      activeOpacity={0.9}
-                    >
-                      <Text style={styles.dropdownIcon}>{item.icon}</Text>
-                      <Text
-                        style={[
-                          styles.dropdownText,
-                          {
-                            color: isSelected
-                              ? theme.accent
-                              : theme.textPrimary,
-                          },
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-
           {onClear && (
             <TouchableOpacity
               style={[
@@ -181,7 +116,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "web" ? 0 : RNStatusBar.currentHeight || 0,
     justifyContent: "center",
     borderBottomWidth: 1,
-    // Migración limpia a la nueva especificación boxShadow para corregir advertencias
+
     boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
     ...(Platform.OS === "web"
       ? {
@@ -221,7 +156,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   brandName: {
-    fontSize: 19,
+    fontSize: 22,
     fontWeight: "800",
     letterSpacing: -0.5,
   },

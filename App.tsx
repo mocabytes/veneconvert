@@ -19,7 +19,7 @@ import BottomTabs from "./src/components/BottomTabs";
 import { analizarCompra, TasasEntrada } from "./src/utils/calculations";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-type TabMode = "inicio" | "conversor" | "comparador";
+type TabMode = "inicio" | "conversor" | "comparador" | "configuracion";
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
 
@@ -67,7 +67,13 @@ const darkTheme = {
   tabBarBackground: "#020617",
 };
 
-function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
+function MainApp({
+  nombreUsuario,
+  alCambiarNombre,
+}: {
+  nombreUsuario: string;
+  alCambiarNombre: (nuevo: string) => void;
+}) {
   const [currentTab, setCurrentTab] = useState<TabMode>("inicio");
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
@@ -83,7 +89,6 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
     binanceBuy: 0,
     binanceSell: 0,
   });
-
   const [comisionBinance] = useState<number>(0.2);
 
   // Estados del Conversor
@@ -96,6 +101,9 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
   const [compPrecioBs, setCompPrecioBs] = useState<string>("");
   const [compPrecioUsdBcv, setCompPrecioUsdBcv] = useState<string>("");
   const [compPrecioDivisa, setCompPrecioDivisa] = useState<string>("");
+
+  const [nuevoNombreInput, setNuevoNombreInput] =
+    useState<string>(nombreUsuario);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
@@ -236,6 +244,13 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
     setCompPrecioBs((parseFloat(value) * tasas.bcv).toFixed(2));
   };
 
+  const actualizarNombrePerfil = async () => {
+    if (nuevoNombreInput.trim().length >= 2) {
+      await AsyncStorage.setItem("user_name", nuevoNombreInput.trim());
+      alCambiarNombre(nuevoNombreInput.trim());
+    }
+  };
+
   const resultadoComparador = analizarCompra(
     monedaOrigen,
     parseFloat(compPrecioBs) || 0,
@@ -243,6 +258,13 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
     tasas,
     comisionBinance,
   );
+
+  const obtenerColorCard = (rec: string) => {
+    if (rec.includes("DIRECTO")) return theme.success;
+    if (rec.includes("CAMBIAR")) return theme.accent;
+    return theme.textSecondary;
+  };
+
   const ContainerView = Platform.OS === "web" ? View : SafeAreaView;
 
   return (
@@ -250,18 +272,15 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
       style={[styles.safeArea, { backgroundColor: theme.background }]}
     >
       <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
-      <Navbar
-        onClear={limpiarCampos}
-        theme={theme}
-        themeMode={themeMode}
-        onThemeChange={setThemeMode}
-      />
+
+      {/* Navbar ultra limpio sin interruptores de tema */}
+      <Navbar onClear={limpiarCampos} theme={theme} />
 
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContainer}
       >
-        {/* PESTAÑA 1: INICIO (DASHBOARD LIMPIO Y COMPLETO) */}
+        {/* PESTAÑA 1: INICIO */}
         {currentTab === "inicio" && (
           <Animated.View
             style={{
@@ -306,7 +325,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                     {modoOffline ? "⚠️ Modo Offline" : "⚡ Conexión En Vivo"}
                   </Text>
                 </View>
-                {ultimaSincronizacion && (
+                {ultimaSincronizacion ? (
                   <View
                     style={[
                       styles.heroPill,
@@ -321,7 +340,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                       )}
                     </Text>
                   </View>
-                )}
+                ) : null}
               </View>
             </View>
 
@@ -404,7 +423,6 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
               )}
             </View>
 
-            {/* SECCIÓN DE RELLENO ATRACTIVO: ACCESOS RÁPIDOS Y TIPS */}
             <Text
               style={[
                 styles.sectionHeading,
@@ -459,28 +477,10 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
               </TouchableOpacity>
             </View>
-
-            <View
-              style={[
-                styles.tipCard,
-                {
-                  backgroundColor: theme.surfaceAlt,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={styles.tipTitle}>💡 Tip Financiero del Día</Text>
-              <Text style={[styles.tipText, { color: theme.textSecondary }]}>
-                Si un comercio calcula los precios a tasa BCV y tienes bolívares
-                en tu cuenta, pagar por punto siempre será tu mejor opción.
-                Evita cambiar a USDT a menos que la etiqueta de divisas tenga un
-                descuento superior al 8%.
-              </Text>
-            </View>
           </Animated.View>
         )}
 
-        {/* PESTAÑA 2: CONVERSOR (AISLADO Y LIMPIO) */}
+        {/* PESTAÑA 2: CONVERSOR PLANO */}
         {currentTab === "conversor" && (
           <Animated.View
             style={{
@@ -488,19 +488,23 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
               transform: [{ translateY: slideAnim }],
             }}
           >
-            <View style={[styles.card, { backgroundColor: theme.surface }]}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderText}>
-                  <Text style={[styles.cardLabel, { color: theme.accent }]}>
-                    Modo conversor
-                  </Text>
-                  <Text
-                    style={[styles.sectionTitle, { color: theme.textPrimary }]}
-                  >
-                    Conversiones rápidas
-                  </Text>
-                </View>
-              </View>
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Modo conversor
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 24 },
+                ]}
+              >
+                Conversiones rápidas
+              </Text>
 
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>
@@ -508,10 +512,10 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.flatInputWrapper,
                     {
                       borderColor: theme.border,
-                      backgroundColor: theme.surfaceAlt,
+                      backgroundColor: theme.surface,
                     },
                   ]}
                 >
@@ -537,7 +541,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.flatInputWrapper,
                     {
                       borderColor: theme.successBorder,
                       backgroundColor: theme.successBg,
@@ -566,7 +570,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.flatInputWrapper,
                     {
                       borderColor: theme.warningBorder,
                       backgroundColor: theme.warningBg,
@@ -592,7 +596,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
           </Animated.View>
         )}
 
-        {/* PESTAÑA 3: COMPARADOR (AISLADO Y LIMPIO) */}
+        {/* PESTAÑA 3: COMPARADOR PLANO SIN BOTONES EXTRA */}
         {currentTab === "comparador" && (
           <Animated.View
             style={{
@@ -600,19 +604,23 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
               transform: [{ translateY: slideAnim }],
             }}
           >
-            <View style={[styles.card, { backgroundColor: theme.surface }]}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderText}>
-                  <Text style={[styles.cardLabel, { color: theme.accent }]}>
-                    Modo comparador
-                  </Text>
-                  <Text
-                    style={[styles.sectionTitle, { color: theme.textPrimary }]}
-                  >
-                    ¿Cuál opción sale mejor?
-                  </Text>
-                </View>
-              </View>
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Modo comparador
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 16 },
+                ]}
+              >
+                ¿Cuál opción sale mejor?
+              </Text>
 
               <Text style={[styles.label, { color: theme.textSecondary }]}>
                 ¿Qué dinero tienes disponible?
@@ -626,9 +634,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 <TouchableOpacity
                   style={[
                     styles.toggleButton,
-                    monedaOrigen === "VES" && {
-                      backgroundColor: theme.textPrimary,
-                    },
+                    monedaOrigen === "VES" && { backgroundColor: theme.accent },
                   ]}
                   onPress={() => setMonedaOrigen("VES")}
                 >
@@ -667,10 +673,10 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.flatInputWrapper,
                     {
                       borderColor: theme.border,
-                      backgroundColor: theme.surfaceAlt,
+                      backgroundColor: theme.surface,
                     },
                   ]}
                 >
@@ -697,10 +703,10 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.flatInputWrapper,
                     {
                       borderColor: theme.border,
-                      backgroundColor: theme.surfaceAlt,
+                      backgroundColor: theme.surface,
                     },
                   ]}
                 >
@@ -726,7 +732,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </Text>
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.flatInputWrapper,
                     {
                       borderColor: theme.successBorder,
                       backgroundColor: theme.successBg,
@@ -749,7 +755,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                 </View>
               </View>
 
-              {resultadoComparador && (
+              {resultadoComparador ? (
                 <View
                   style={[
                     styles.diagnosisCard,
@@ -766,7 +772,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                   <Text style={styles.diagnosisText}>
                     {resultadoComparador.mensaje}
                   </Text>
-                  {resultadoComparador.ahorroEstimado > 0 && (
+                  {resultadoComparador.ahorroEstimado > 0 ? (
                     <View style={styles.diagnosisAhorroContainer}>
                       <Text style={styles.diagnosisAhorro}>
                         🔥 Ahorras:{" "}
@@ -779,7 +785,7 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                         )}
                       </Text>
                     </View>
-                  )}
+                  ) : null}
                   <View style={styles.separator} />
                   <Text style={styles.desgloseTitle}>
                     Comparativa de costos:
@@ -798,7 +804,6 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                           index === 0 && styles.textGanador,
                         ]}
                         numberOfLines={1}
-                        ellipsizeMode="tail"
                       >
                         {index === 0 ? `🏆 ${opcion.nombre}` : opcion.nombre}
                       </Text>
@@ -818,7 +823,155 @@ function MainApp({ nombreUsuario }: { nombreUsuario: string }) {
                     </View>
                   ))}
                 </View>
-              )}
+              ) : null}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* PESTAÑA 4: CONFIGURACIÓN GENERAL */}
+        {currentTab === "configuracion" && (
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Ajustes
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 24 },
+                ]}
+              >
+                Configuración de la App
+              </Text>
+
+              {/* Ajuste de Personalización del Nombre */}
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.textSecondary, marginBottom: 8 },
+                ]}
+              >
+                Tu Nombre de Perfil
+              </Text>
+              <View
+                style={[
+                  styles.flatInputWrapper,
+                  {
+                    borderColor: theme.border,
+                    backgroundColor: theme.surface,
+                    marginBottom: 12,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.input, { color: theme.textPrimary }]}
+                  value={nuevoNombreInput}
+                  onChangeText={setNuevoNombreInput}
+                  maxLength={20}
+                  placeholder="Modifica tu nombre"
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.inlineSaveButton,
+                    { backgroundColor: theme.accent },
+                  ]}
+                  onPress={actualizarNombrePerfil}
+                >
+                  <Text style={styles.inlineSaveButtonText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Selector Estético de Temas Visuales */}
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: theme.textSecondary,
+                    marginTop: 14,
+                    marginBottom: 8,
+                  },
+                ]}
+              >
+                Tema Visual de la Interfaz
+              </Text>
+              <View
+                style={[
+                  styles.toggleContainer,
+                  { backgroundColor: theme.surfaceAlt },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    themeMode === "light" && { backgroundColor: theme.accent },
+                  ]}
+                  onPress={() => setThemeMode("light")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      themeMode === "light" && styles.toggleTextActive,
+                    ]}
+                  >
+                    ☀️ Claro
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    themeMode === "dark" && { backgroundColor: theme.accent },
+                  ]}
+                  onPress={() => setThemeMode("dark")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      themeMode === "dark" && styles.toggleTextActive,
+                    ]}
+                  >
+                    🌙 Oscuro
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    themeMode === "system" && { backgroundColor: theme.accent },
+                  ]}
+                  onPress={() => setThemeMode("system")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      themeMode === "system" && styles.toggleTextActive,
+                    ]}
+                  >
+                    ⚙️ Auto
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text
+                style={[
+                  styles.quickActionDesc,
+                  {
+                    color: theme.textMuted,
+                    textAlign: "center",
+                    marginTop: 40,
+                  },
+                ]}
+              >
+                VeneConvert v1.0.0 • Hecho para Margarita 🏝️
+              </Text>
             </View>
           </Animated.View>
         )}
@@ -926,7 +1079,10 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <MainApp nombreUsuario={nombreUsuario} />
+      <MainApp
+        nombreUsuario={nombreUsuario}
+        alCambiarNombre={setNombreUsuario}
+      />
     </SafeAreaProvider>
   );
 }
@@ -939,7 +1095,7 @@ const styles = StyleSheet.create({
       Platform.OS === "web"
         ? 30
         : RNStatusBar.currentHeight
-          ? RNStatusBar.currentHeight + 30
+          ? RNStatusBar.currentHeight + 45
           : 50,
     paddingBottom: 130,
     flexGrow: 1,
@@ -1007,6 +1163,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     minHeight: 74,
+    justifyCerd: "center",
     justifyContent: "center",
   },
   rateLabel: {
@@ -1027,22 +1184,23 @@ const styles = StyleSheet.create({
   quickActionEmoji: { fontSize: 24, marginBottom: 6 },
   quickActionTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
   quickActionDesc: { fontSize: 11, fontWeight: "500" },
-  tipCard: { padding: 16, borderRadius: 22, borderWidth: 1, marginBottom: 10 },
-  tipTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 6,
-    color: "#8B5CF6",
-  },
-  tipText: { fontSize: 12, lineHeight: 18, fontWeight: "500" },
-  card: { borderRadius: 24, padding: 18, elevation: 8 },
-  cardHeader: {
+  flatContainer: { paddingVertical: 6, paddingHorizontal: 2, width: "100%" },
+  flatInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
   },
-  cardHeaderText: { flex: 1 },
+  inlineSaveButton: {
+    paddingHorizontal: 16,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  inlineSaveButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   cardLabel: {
     fontSize: 12,
     fontWeight: "700",
@@ -1050,9 +1208,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     marginBottom: 4,
   },
-  sectionTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.4 },
-  inputGroup: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
+  sectionTitle: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+  inputGroup: { marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: "700", marginBottom: 8, marginLeft: 2 },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -1062,12 +1220,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   currencyPrefix: { fontSize: 16, fontWeight: "700", marginRight: 10 },
-  input: { flex: 1, height: 54, fontSize: 18, fontWeight: "600" },
+  input: { flex: 1, height: 56, fontSize: 18, fontWeight: "600" },
   toggleContainer: {
     flexDirection: "row",
     padding: 6,
     borderRadius: 16,
-    marginBottom: 18,
+    marginBottom: 20,
     gap: 6,
   },
   toggleButton: {
@@ -1081,10 +1239,10 @@ const styles = StyleSheet.create({
   toggleText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
   toggleTextActive: { color: "#FFFFFF", fontWeight: "700" },
   diagnosisCard: {
-    marginTop: 20,
+    marginTop: 24,
     padding: 20,
     borderRadius: 24,
-    elevation: 6,
+    elevation: 4,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },

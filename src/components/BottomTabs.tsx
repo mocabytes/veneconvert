@@ -8,8 +8,10 @@ import {
 } from "react-native";
 
 interface BottomTabsProps {
-  currentTab: "inicio" | "conversor" | "comparador";
-  setCurrentTab: (tab: "inicio" | "conversor" | "comparador") => void;
+  currentTab: "inicio" | "conversor" | "comparador" | "configuracion";
+  setCurrentTab: (
+    tab: "inicio" | "conversor" | "comparador" | "configuracion",
+  ) => void;
   theme: {
     accent: string;
     tabBarBackground: string;
@@ -47,7 +49,7 @@ export default function BottomTabs({
   };
 
   const renderTab = (
-    tab: "inicio" | "conversor" | "comparador",
+    tab: "inicio" | "conversor" | "comparador" | "configuracion",
     label: string,
     icon: string,
   ) => {
@@ -59,7 +61,7 @@ export default function BottomTabs({
         style={[
           styles.tabButton,
           isActive && {
-            backgroundColor: obtenerFondoConOpacidad(theme.accent, "22"),
+            backgroundColor: obtenerFondoConOpacidad(theme.accent, "18"),
           },
         ]}
         onPress={() => setCurrentTab(tab)}
@@ -92,15 +94,16 @@ export default function BottomTabs({
         {
           backgroundColor: obtenerFondoConOpacidad(
             theme.tabBarBackground,
-            "D9",
+            "E2",
           ),
-          borderColor: obtenerFondoConOpacidad(theme.textPrimary, "15"),
+          borderColor: obtenerFondoConOpacidad(theme.textPrimary, "12"),
         },
       ]}
     >
       {renderTab("inicio", "Inicio", "🏠")}
       {renderTab("conversor", "Conversor", "↺")}
       {renderTab("comparador", "Comparador", "⚖")}
+      {renderTab("configuracion", "Ajustes", "⚙️")}
     </View>
   );
 }
@@ -109,11 +112,11 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: "row",
     alignSelf: "center",
-    width: "92%",
+    width: "94%",
     position: "absolute",
     bottom: 24,
     padding: 6,
-    borderRadius: 999,
+    borderRadius: 24, // Diseño moderno semi-rectangular suavizado que encaja con las tarjetas planas
     gap: 4,
     borderWidth: 1,
     shadowColor: "#000",
@@ -126,9 +129,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 999,
-    paddingVertical: 7,
-    minHeight: 46,
+    borderRadius: 18,
+    paddingVertical: 8,
+    minHeight: 48,
   },
   iconCircle: {
     width: 24,
