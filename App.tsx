@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,70 +11,91 @@ import {
   StatusBar as RNStatusBar,
   Animated,
   useColorScheme,
+  Share,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import Navbar from "./src/components/Navbar";
 import BottomTabs from "./src/components/BottomTabs";
-import { analizarCompra, TasasEntrada } from "./src/utils/calculations";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import AnimatedButton from "./src/components/AnimatedButton";
+import LoadingScreen from "./src/components/LoadingScreen";
+import {
+  ExchangeIcon,
+  ScaleIcon,
+  ClockIcon,
+  BookIcon,
+  TrendIcon,
+  LightbulbIcon,
+  FireIcon,
+  TrophyIcon,
+  SwapIcon,
+  TrashIcon,
+  MoonIcon,
+  BeachIcon,
+  getFlagIcon,
+} from "./src/components/Icons";
 
-type TabMode = "inicio" | "conversor" | "comparador" | "configuracion";
+// Lazy loading de componentes pesados
+const MoreMenu = lazy(() => import("./src/components/MoreMenu"));
+const Onboarding = lazy(() => import("./src/components/Onboarding"));
+const SwipeableHistoryItem = lazy(
+  () => import('./src/components/SwipeableHistoryItem')
+);
+const PulseAnimation = lazy(() => import("./src/components/PulseAnimation"));
+import { analizarCompra, TasasEntrada } from "./src/utils/calculations";
+import {
+  saveConversion,
+  getConversionHistory,
+  deleteConversion,
+  clearConversionHistory,
+  ConversionRecord,
+} from "./src/utils/history";
+import {
+  generateHistoricalRates,
+  getChartData,
+  getRateStats,
+  RateHistoryPoint,
+} from "./src/utils/ratesHistory";
+import {
+  saveAlert,
+  getAlerts,
+  updateAlert,
+  deleteAlert,
+  RateAlert,
+} from "./src/utils/alerts";
+import {
+  SUPPORTED_CURRENCIES,
+  convertCurrency,
+  getCurrencyByCode,
+  formatCurrency,
+  getExchangeRates,
+  ConversionResult,
+} from "./src/utils/multiCurrency";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { LineChart } from "react-native-chart-kit";
+import { triggerHapticForAction } from "./src/utils/haptic";
+import {
+  announceForAccessibility,
+} from "./src/utils/accessibility";
+import {
+  isTablet,
+  getContainerWidth,
+} from "./src/utils/responsive";
+import { lightTheme, darkTheme } from "./src/theme/colors";
+import { RECOMENDACIONES_FINANCIERAS } from "./src/constants/recommendations";
+
+type TabMode =
+  | 'inicio'
+  | 'conversor'
+  | 'comparador'
+  | 'configuracion'
+  | 'multimoneda'
+  | 'historial'
+  | 'tendencias'
+  | "alertas";
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
-
-// Lista de recomendaciones financieras aleatorias para rellenar el inicio
-const RECOMENDACIONES_FINANCIERAS = [
-  "Si un comercio calcula los precios a tasa BCV y tienes bolívares en tu cuenta, pagar por punto siempre será tu mejor opción. Evita cambiar a USDT a menos que la etiqueta de divisas tenga un descuento superior al 8%.",
-  "¡Atento en los comercios de Margarita! Siempre verifica que la tasa de conversión reflejada en el punto de venta coincida exactamente con la tasa oficial emitida por el BCV para el día de hoy.",
-  "Si manejas efectivo en divisas, recuerda que los vueltos en bolívares por punto de venta o pago móvil deben calcularse también a tasa oficial. Guarda tus billetes de baja denominación para pagos exactos.",
-  "Al cambiar bolívares a USDT en plataformas P2P, ten en cuenta las comisiones ocultas y el margen de compra/venta. A veces es más eficiente mantener los fondos líquidos en tu cuenta nacional si vas a gastarlos pronto.",
-  "Antes de realizar compras grandes, compara el precio de etiqueta en bolívares con el precio en dólares en efectivo. Muchos comercios ofrecen ligeros descuentos informales si pagas con billetes extranjeros.",
-];
-
-const lightTheme = {
-  background: "#F4F7FB",
-  surface: "#FFFFFF",
-  surfaceAlt: "#F8FAFC",
-  border: "#E2E8F0",
-  textPrimary: "#0F172A",
-  textSecondary: "#475569",
-  textMuted: "#64748B",
-  accent: "#49a037",
-  accentSoft: "#F5F3FF",
-  success: "#0F766E",
-  successBg: "#F0FDF4",
-  successBorder: "#A7F3D0",
-  warningBg: "#FFFBEB",
-  warningBorder: "#FDE68A",
-  shadow: "#000000",
-  heroBackground: "#111827",
-  heroText: "#F9FAFB",
-  heroSubtext: "#D1D5DB",
-  tabBarBackground: "#1E293B",
-};
-
-const darkTheme = {
-  background: "#060B14",
-  surface: "#111827",
-  surfaceAlt: "#1F2937",
-  border: "rgba(255,255,255,0.08)",
-  textPrimary: "#F9FAFB",
-  textSecondary: "#E5E7EB",
-  textMuted: "#94A3B8",
-  accent: "#337a31",
-  accentSoft: "rgba(167, 139, 250, 0.18)",
-  success: "#34D399",
-  successBg: "rgba(52, 211, 153, 0.12)",
-  successBorder: "rgba(52, 211, 153, 0.35)",
-  warningBg: "rgba(250, 204, 21, 0.14)",
-  warningBorder: "rgba(250, 204, 21, 0.35)",
-  shadow: "#000000",
-  heroBackground: "#0B1220",
-  heroText: "#F9FAFB",
-  heroSubtext: "#CBD5E1",
-  tabBarBackground: "#0F172A",
-};
 
 function MainApp({
   nombreUsuario,
@@ -111,14 +132,42 @@ function MainApp({
   const [compPrecioUsdBcv, setCompPrecioUsdBcv] = useState<string>("");
   const [compPrecioDivisa, setCompPrecioDivisa] = useState<string>("");
 
-  // Estado para controlar cuándo mostrar el diagnóstico tras presionar el botón
   const [mostrarDiagnostico, setMostrarDiagnostico] = useState<boolean>(false);
-
-  // Estado para almacenar el tip aleatorio del día
   const [tipAleatorio, setTipAleatorio] = useState<string>("");
 
-  const nuevoNombreInput = nombreUsuario;
-  const setNuevoNombreInput = (val: string) => {};
+  const [nuevoNombreInput, setNuevoNombreInput] =
+    useState<string>(nombreUsuario);
+
+  const [conversionHistory, setConversionHistory] = useState<
+    ConversionRecord[]
+  >([]);
+  const [ratesHistory, setRatesHistory] = useState<RateHistoryPoint[]>([]);
+  const [rateAlerts, setRateAlerts] = useState<RateAlert[]>([]);
+  const [newAlertThreshold, setNewAlertThreshold] = useState<string>("");
+  const [newAlertType, setNewAlertType] = useState<
+    "BCV" | "BINANCE_BUY" | "BINANCE_SELL"
+  >("BCV");
+  const [newAlertCondition, setNewAlertCondition] = useState<"ABOVE" | "BELOW">(
+    'ABOVE'
+  );
+
+  const [selectedFromCurrency, setSelectedFromCurrency] =
+    useState<string>("VES");
+  const [selectedToCurrency, setSelectedToCurrency] = useState<string>("USD");
+  const [multiCurrencyAmount, setMultiCurrencyAmount] = useState<string>("");
+  const [multiCurrencyResult, setMultiCurrencyResult] =
+    useState<ConversionResult | null>(null);
+  const [multiCurrencyRates, setMultiCurrencyRates] = useState<{
+    [key: string]: number;
+  }>({});
+  const [loadingMultiCurrencyRates, setLoadingMultiCurrencyRates] =
+    useState<boolean>(false);
+  const [showFromCurrencySelector, setShowFromCurrencySelector] =
+    useState<boolean>(false);
+  const [showToCurrencySelector, setShowToCurrencySelector] =
+    useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [showMoreMenu, setShowMoreMenu] = useState<boolean>(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
@@ -134,6 +183,66 @@ function MainApp({
     setMostrarDiagnostico(false);
   };
 
+  const handleDeleteConversion = async (id: string) => {
+    triggerHapticForAction("delete");
+    await deleteConversion(id);
+    loadConversionHistory();
+    announceForAccessibility("Conversión eliminada");
+  };
+
+  const handleClearHistory = async () => {
+    triggerHapticForAction("delete");
+    await clearConversionHistory();
+    loadConversionHistory();
+    announceForAccessibility("Historial limpiado");
+  };
+
+  const handleShareConversion = async (record: ConversionRecord) => {
+    triggerHapticForAction("share");
+    const message = `Conversión en Arco\n\n${record.fromAmount.toFixed(2)} ${
+      record.fromCurrency
+    } → ${record.toAmount.toFixed(2)} ${record.toCurrency}\n\nTasa: ${
+      record.rateType
+    } (${record.rateUsed.toFixed(2)})\nFecha: ${new Date(
+      record.timestamp
+    ).toLocaleDateString(
+      'es-VE'
+    )}\n\nDescarga Arco para tus conversiones rápidas`;
+
+    try {
+      await Share.share({
+        message,
+      });
+      announceForAccessibility("Conversión compartida");
+    } catch (error) {
+      console.error("Error compartiendo:", error);
+    }
+  };
+
+  const handleSelectMoreTab = (
+    tab:
+      | 'multimoneda'
+      | 'historial'
+      | 'tendencias'
+      | 'alertas'
+      | 'configuracion'
+  ) => {
+    triggerHapticForAction("tab");
+    setCurrentTab(tab);
+  };
+
+  const guardarNombrePerfil = async () => {
+    if (nuevoNombreInput.trim().length >= 2) {
+      try {
+        await AsyncStorage.setItem("user_name", nuevoNombreInput.trim());
+        alCambiarNombre(nuevoNombreInput.trim());
+        alert("¡Nombre de perfil actualizado con éxito!");
+      } catch (error) {
+        console.log("Error guardando el nombre:", error);
+      }
+    }
+  };
+
   useEffect(() => {
     const nextTheme =
       themeMode === "system"
@@ -144,11 +253,10 @@ function MainApp({
     setResolvedTheme(nextTheme);
   }, [themeMode, colorScheme]);
 
-  // Selección de tip aleatorio al montar o cambiar a la pestaña de inicio
   useEffect(() => {
     if (currentTab === "inicio") {
       const indice = Math.floor(
-        Math.random() * RECOMENDACIONES_FINANCIERAS.length,
+        Math.random() * RECOMENDACIONES_FINANCIERAS.length
       );
       setTipAleatorio(RECOMENDACIONES_FINANCIERAS[indice]);
     }
@@ -176,7 +284,9 @@ function MainApp({
           fetch("https://ve.dolarapi.com/v1/dolares/oficial"),
           fetch("https://ve.dolarapi.com/v1/dolares/paralelo"),
         ]);
-        if (!resBcv.ok || !resParalelo.ok) throw new Error("Fallo de red");
+        if (!resBcv.ok || !resParalelo.ok) {
+          throw new Error("Fallo de red");
+        }
 
         const dataBcv = await resBcv.json();
         const dataParalelo = await resParalelo.json();
@@ -210,10 +320,116 @@ function MainApp({
         setCargandoTasas(false);
       }
     };
+
+    const checkOnboarding = async () => {
+      const onboardingCompleted = await AsyncStorage.getItem(
+        'onboarding_completed'
+      );
+      if (!onboardingCompleted) {
+        setShowOnboarding(true);
+      }
+    };
+
     sincronizarTasas();
+    loadConversionHistory();
+    checkOnboarding();
   }, []);
 
-  const handleBsChange = (value: string) => {
+  const loadConversionHistory = async () => {
+    const history = await getConversionHistory();
+    setConversionHistory(history);
+  };
+
+  useEffect(() => {
+    const historicalData = generateHistoricalRates(30);
+    setRatesHistory(historicalData);
+    loadAlerts();
+    loadMultiCurrencyRates();
+  }, []);
+
+  const loadAlerts = async () => {
+    const alerts = await getAlerts();
+    setRateAlerts(alerts);
+  };
+
+  const handleAddAlert = async () => {
+    const threshold = parseFloat(newAlertThreshold);
+    if (isNaN(threshold) || threshold <= 0) {
+      return;
+    }
+
+    await saveAlert({
+      type: newAlertType,
+      condition: newAlertCondition,
+      threshold,
+      enabled: true,
+    });
+
+    setNewAlertThreshold("");
+    loadAlerts();
+  };
+
+  const handleToggleAlert = async (id: string, enabled: boolean) => {
+    await updateAlert(id, { enabled });
+    loadAlerts();
+  };
+
+  const handleDeleteAlert = async (id: string) => {
+    await deleteAlert(id);
+    loadAlerts();
+  };
+
+  const handleMultiCurrencyConvert = async () => {
+    const amount = parseFloat(multiCurrencyAmount);
+    if (isNaN(amount) || amount <= 0) {
+      return;
+    }
+
+    setLoadingMultiCurrencyRates(true);
+    try {
+      const rates = await getExchangeRates("VES", {
+        bcv: tasas.bcv,
+        binanceBuy: tasas.binanceBuy,
+      });
+      setMultiCurrencyRates(rates);
+      const result = convertCurrency(
+        amount,
+        selectedFromCurrency,
+        selectedToCurrency,
+        rates
+      );
+      setMultiCurrencyResult(result);
+    } catch (error) {
+      console.error("Error en conversión multi-moneda:", error);
+    } finally {
+      setLoadingMultiCurrencyRates(false);
+    }
+  };
+
+  const handleSwapCurrencies = () => {
+    const temp = selectedFromCurrency;
+    setSelectedFromCurrency(selectedToCurrency);
+    setSelectedToCurrency(temp);
+    setMultiCurrencyResult(null);
+  };
+
+  const loadMultiCurrencyRates = async () => {
+    setLoadingMultiCurrencyRates(true);
+    try {
+      const rates = await getExchangeRates("VES", {
+        bcv: tasas.bcv,
+        binanceBuy: tasas.binanceBuy,
+      });
+      setMultiCurrencyRates(rates);
+    } catch (error) {
+      console.error("Error cargando tasas multi-moneda:", error);
+    } finally {
+      setLoadingMultiCurrencyRates(false);
+    }
+  };
+
+  const handleBsChange = async (value: string) => {
+    triggerHapticForAction("input");
     setBs(value);
     if (value === "" || tasas.bcv === 0) {
       setUsdBcv("");
@@ -221,11 +437,26 @@ function MainApp({
       return;
     }
     const numBs = parseFloat(value) || 0;
-    setUsdBcv((numBs / tasas.bcv).toFixed(2));
-    setUsdtBinance((numBs / tasas.binanceBuy).toFixed(2));
+    const usdBcvValue = (numBs / tasas.bcv).toFixed(2);
+    const usdtBinanceValue = (numBs / tasas.binanceBuy).toFixed(2);
+    setUsdBcv(usdBcvValue);
+    setUsdtBinance(usdtBinanceValue);
+
+    // Guardar conversión en historial
+    await saveConversion({
+      type: "BS_TO_USD_BCV",
+      fromAmount: numBs,
+      fromCurrency: "VES",
+      toAmount: parseFloat(usdBcvValue),
+      toCurrency: "USD",
+      rateUsed: tasas.bcv,
+      rateType: "BCV",
+    });
+    loadConversionHistory();
   };
 
-  const handleBcvChange = (value: string) => {
+  const handleBcvChange = async (value: string) => {
+    triggerHapticForAction("input");
     setUsdBcv(value);
     if (value === "") {
       setBs("");
@@ -234,11 +465,26 @@ function MainApp({
     }
     const numUsd = parseFloat(value) || 0;
     const equivalenteBs = numUsd * tasas.bcv;
-    setBs(equivalenteBs.toFixed(2));
-    setUsdtBinance((equivalenteBs / tasas.binanceBuy).toFixed(2));
+    const bsValue = equivalenteBs.toFixed(2);
+    const usdtValue = (equivalenteBs / tasas.binanceBuy).toFixed(2);
+    setBs(bsValue);
+    setUsdtBinance(usdtValue);
+
+    // Guardar conversión en historial
+    await saveConversion({
+      type: "USD_BCV_TO_BS",
+      fromAmount: numUsd,
+      fromCurrency: "USD",
+      toAmount: parseFloat(bsValue),
+      toCurrency: "VES",
+      rateUsed: tasas.bcv,
+      rateType: "BCV",
+    });
+    loadConversionHistory();
   };
 
-  const handleBinanceChange = (value: string) => {
+  const handleBinanceChange = async (value: string) => {
+    triggerHapticForAction("input");
     setUsdtBinance(value);
     if (value === "") {
       setBs("");
@@ -247,12 +493,26 @@ function MainApp({
     }
     const numUsdt = parseFloat(value) || 0;
     const equivalenteBs = numUsdt * tasas.binanceSell;
-    setBs(equivalenteBs.toFixed(2));
-    setUsdBcv((equivalenteBs / tasas.bcv).toFixed(2));
+    const bsValue = equivalenteBs.toFixed(2);
+    const usdBcvValue = (equivalenteBs / tasas.bcv).toFixed(2);
+    setBs(bsValue);
+    setUsdBcv(usdBcvValue);
+
+    // Guardar conversión en historial
+    await saveConversion({
+      type: "USDT_TO_BS",
+      fromAmount: numUsdt,
+      fromCurrency: "USDT",
+      toAmount: parseFloat(bsValue),
+      toCurrency: "VES",
+      rateUsed: tasas.binanceSell,
+      rateType: "BINANCE_SELL",
+    });
+    loadConversionHistory();
   };
 
   const handleCompBsChange = (value: string) => {
-    setMostrarDiagnostico(false); // Ocultamos si el usuario vuelve a editar para no generar confusión
+    setMostrarDiagnostico(false);
     setCompPrecioBs(value);
     if (value === "" || tasas.bcv === 0) {
       setCompPrecioUsdBcv("");
@@ -271,17 +531,26 @@ function MainApp({
     setCompPrecioBs((parseFloat(value) * tasas.bcv).toFixed(2));
   };
 
-  const actualizarNombrePerfil = async () => {};
-
   const resultadoComparador = analizarCompra(
     monedaOrigen,
     parseFloat(compPrecioBs) || 0,
     parseFloat(compPrecioDivisa) || 0,
     tasas,
-    comisionBinance,
+    comisionBinance
   );
 
-  // Procesar y desplazar suavemente al activar el botón
+  useEffect(() => {
+    if (
+      resultadoComparador &&
+      currentTab === "comparador" &&
+      mostrarDiagnostico
+    ) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+    }
+  }, [resultadoComparador, currentTab, mostrarDiagnostico]);
+
   const ejecutarAnalisis = () => {
     setMostrarDiagnostico(true);
     setTimeout(() => {
@@ -290,24 +559,46 @@ function MainApp({
   };
 
   const obtenerColorCard = (rec: string) => {
-    if (rec.includes("DIRECTO")) return theme.success;
-    if (rec.includes("CAMBIAR")) return theme.accent;
+    if (rec.includes("DIRECTO")) {
+      return theme.success;
+    }
+    if (rec.includes("CAMBIAR")) {
+      return theme.accent;
+    }
     return theme.textSecondary;
   };
 
   const ContainerView = Platform.OS === "web" ? View : SafeAreaView;
+
+  if (showOnboarding) {
+    return (
+      <Suspense
+        fallback={<ActivityIndicator size="large" color={theme.accent} />}
+      >
+        <Onboarding onComplete={() => setShowOnboarding(false)} theme={theme} />
+      </Suspense>
+    );
+  }
 
   return (
     <ContainerView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
     >
       <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
-      <Navbar onClear={limpiarCampos} theme={theme} />
+      <Navbar
+        onClear={currentTab !== 'inicio' ? limpiarCampos : undefined}
+        theme={theme}
+        themeMode={themeMode}
+        onThemeChange={setThemeMode}
+      />
 
       <ScrollView
         ref={scrollViewRef}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { maxWidth: getContainerWidth(), width: "100%", alignSelf: "center" },
+        ]}
       >
         {/* PESTAÑA 1: INICIO */}
         {currentTab === "inicio" && (
@@ -322,42 +613,26 @@ function MainApp({
                 styles.heroCard,
                 { backgroundColor: theme.heroBackground },
               ]}
+              accessible={true}
+              accessibilityLabel="Inicio"
+              accessibilityHint={`Estado: ${
+                modoOffline
+                  ? 'Modo offline, usando tasas cacheadas'
+                  : 'Conexión en vivo, tasas actualizadas'
+              }`}
             >
               <View style={styles.heroGlow} />
               <Text style={[styles.heroEyebrow, { color: theme.accent }]}>
-                Panel Principal
+                Inicio
               </Text>
               <Text style={[styles.heroTitle, { color: theme.heroText }]}>
-                ¡Hola, {nombreUsuario}! 👋
+                ¡Hola, {nombreUsuario}!
               </Text>
               <Text style={[styles.heroSubtitle, { color: theme.heroSubtext }]}>
-                Monitorea el valor del Bolívar y toma decisiones de compra
-                inteligentes en segundos.
+                Tasas BCV y P2P en tiempo real
               </Text>
-              <View style={styles.heroPills}>
-                <View
-                  style={[
-                    styles.heroPill,
-                    {
-                      backgroundColor: modoOffline
-                        ? "rgba(239, 68, 68, 0.2)"
-                        : "rgba(16, 185, 129, 0.2)",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.heroPillText,
-                      { color: modoOffline ? "#FCA5A5" : "#34D399" },
-                    ]}
-                  >
-                    {modoOffline ? "⚠️ Modo Offline" : "⚡ Conexión En Vivo"}
-                  </Text>
-                </View>
-              </View>
             </View>
 
-            {/* MEJORA 1: Encabezado de Tasas integrado con la Fecha y Hora de Sincronización */}
             <View style={styles.headerWithSyncRow}>
               <Text
                 style={[
@@ -365,16 +640,26 @@ function MainApp({
                   { color: theme.textPrimary, marginBottom: 0 },
                 ]}
               >
-                Tasas de Referencia
+                Tasas
               </Text>
               {ultimaSincronizacion ? (
-                <Text style={[styles.syncTimeText, { color: theme.textMuted }]}>
-                  🕒 Actualizado:{" "}
-                  {new Date(ultimaSincronizacion).toLocaleTimeString("es-VE", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <ClockIcon size={16} color={theme.textMuted} />
+                  <Text
+                    style={[styles.syncTimeText, { color: theme.textMuted }]}
+                  >
+                    Actualizado:{" "}
+                    {new Date(ultimaSincronizacion).toLocaleTimeString(
+                      "es-VE",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
+                  </Text>
+                </View>
               ) : null}
             </View>
 
@@ -385,31 +670,59 @@ function MainApp({
                     styles.loadingBox,
                     { backgroundColor: theme.surfaceAlt },
                   ]}
+                  accessible={true}
+                  accessibilityLabel="Cargando tasas"
+                  accessibilityRole="progressbar"
                 >
                   <ActivityIndicator size="small" color={theme.accent} />
                 </View>
               ) : (
                 <>
-                  <View
-                    style={[
-                      styles.rateBox,
-                      {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                      },
-                    ]}
+                  <Suspense
+                    fallback={
+                      <View
+                        style={[
+                          styles.rateBox,
+                          {
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                      >
+                        <ActivityIndicator size="small" color={theme.accent} />
+                      </View>
+                    }
                   >
-                    <Text
-                      style={[styles.rateLabel, { color: theme.textMuted }]}
-                    >
-                      BCV Oficial
-                    </Text>
-                    <Text
-                      style={[styles.rateValue, { color: theme.textPrimary }]}
-                    >
-                      Bs. {tasas.bcv.toFixed(2)}
-                    </Text>
-                  </View>
+                    <PulseAnimation pulseColor={theme.accentSoft}>
+                      <View
+                        style={[
+                          styles.rateBox,
+                          {
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                        accessible={true}
+                        accessibilityLabel={`Tasa BCV Oficial: ${tasas.bcv.toFixed(
+                          2
+                        )} bolívares por dólar`}
+                      >
+                        <Text
+                          style={[styles.rateLabel, { color: theme.textMuted }]}
+                        >
+                          BCV Oficial
+                        </Text>
+                        <Text
+                          style={[
+                            styles.rateValue,
+                            { color: theme.textPrimary },
+                          ]}
+                        >
+                          Bs. {tasas.bcv.toFixed(2)}
+                        </Text>
+                      </View>
+                    </PulseAnimation>
+                  </Suspense>
                   <View
                     style={[
                       styles.rateBox,
@@ -418,6 +731,10 @@ function MainApp({
                         borderColor: theme.border,
                       },
                     ]}
+                    accessible={true}
+                    accessibilityLabel={`Tasa P2P Compra: ${tasas.binanceBuy.toFixed(
+                      2
+                    )} bolívares por dólar`}
                   >
                     <Text
                       style={[styles.rateLabel, { color: theme.textMuted }]}
@@ -438,6 +755,10 @@ function MainApp({
                         borderColor: theme.border,
                       },
                     ]}
+                    accessible={true}
+                    accessibilityLabel={`Tasa P2P Venta: ${tasas.binanceSell.toFixed(
+                      2
+                    )} bolívares por dólar`}
                   >
                     <Text
                       style={[styles.rateLabel, { color: theme.textMuted }]}
@@ -460,17 +781,31 @@ function MainApp({
                 { color: theme.textPrimary, marginTop: 14 },
               ]}
             >
-              Herramientas Rápidas
+              Herramientas
             </Text>
-            <View style={styles.quickActionsGrid}>
+            <View
+              style={[
+                styles.quickActionsGrid,
+                isTablet() && styles.quickActionsGridTablet,
+              ]}
+            >
               <TouchableOpacity
                 style={[
                   styles.quickActionCard,
                   { backgroundColor: theme.surface, borderColor: theme.border },
                 ]}
-                onPress={() => setCurrentTab("conversor")}
+                onPress={() => {
+                  triggerHapticForAction("tab");
+                  setCurrentTab("conversor");
+                }}
+                accessible={true}
+                accessibilityLabel="Conversor"
+                accessibilityHint="Ir a la sección de conversor de monedas"
+                accessibilityRole="button"
               >
-                <Text style={styles.quickActionEmoji}>↺</Text>
+                <View style={styles.quickActionIcon}>
+                  <ExchangeIcon size={32} color={theme.textPrimary} />
+                </View>
                 <Text
                   style={[
                     styles.quickActionTitle,
@@ -490,9 +825,18 @@ function MainApp({
                   styles.quickActionCard,
                   { backgroundColor: theme.surface, borderColor: theme.border },
                 ]}
-                onPress={() => setCurrentTab("comparador")}
+                onPress={() => {
+                  triggerHapticForAction("tab");
+                  setCurrentTab("comparador");
+                }}
+                accessible={true}
+                accessibilityLabel="Comparador"
+                accessibilityHint="Ir a la sección de comparador inteligente"
+                accessibilityRole="button"
               >
-                <Text style={styles.quickActionEmoji}>⚖</Text>
+                <View style={styles.quickActionIcon}>
+                  <ScaleIcon size={32} color={theme.textPrimary} />
+                </View>
                 <Text
                   style={[
                     styles.quickActionTitle,
@@ -507,9 +851,70 @@ function MainApp({
                   Analizador con AI
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.quickActionCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => {
+                  triggerHapticForAction("tab");
+                  setCurrentTab("historial");
+                }}
+                accessible={true}
+                accessibilityLabel="Historial"
+                accessibilityHint="Ir a la sección de historial de conversiones"
+                accessibilityRole="button"
+              >
+                <View style={styles.quickActionIcon}>
+                  <BookIcon size={32} color={theme.textPrimary} />
+                </View>
+                <Text
+                  style={[
+                    styles.quickActionTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Historial
+                </Text>
+                <Text
+                  style={[styles.quickActionDesc, { color: theme.textMuted }]}
+                >
+                  {conversionHistory.length} conversiones
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.quickActionCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => {
+                  triggerHapticForAction("tab");
+                  setCurrentTab("tendencias");
+                }}
+                accessible={true}
+                accessibilityLabel="Tendencias"
+                accessibilityHint="Ir a la sección de tendencias de tasas"
+                accessibilityRole="button"
+              >
+                <View style={styles.quickActionIcon}>
+                  <TrendIcon size={32} color={theme.textPrimary} />
+                </View>
+                <Text
+                  style={[
+                    styles.quickActionTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Tendencias
+                </Text>
+                <Text
+                  style={[styles.quickActionDesc, { color: theme.textMuted }]}
+                >
+                  Gráfico de tasas
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            {/* MEJORA 2: Sección de Tips Financieros con Selección Aleatoria Dinámica */}
             {tipAleatorio ? (
               <View
                 style={[
@@ -520,9 +925,14 @@ function MainApp({
                   },
                 ]}
               >
-                <Text style={styles.tipTitle}>
-                  💡 Tip Financiero Inteligente
-                </Text>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                >
+                  <LightbulbIcon size={24} color={theme.accent} />
+                  <Text style={styles.tipTitle}>
+                    Tip del día
+                  </Text>
+                </View>
                 <Text style={[styles.tipText, { color: theme.textSecondary }]}>
                   {tipAleatorio}
                 </Text>
@@ -554,7 +964,7 @@ function MainApp({
                   { color: theme.textPrimary, marginBottom: 24 },
                 ]}
               >
-                Conversiones rápidas
+                Conversor rápido
               </Text>
 
               <View style={styles.inputGroup}>
@@ -815,7 +1225,6 @@ function MainApp({
                 </View>
               </View>
 
-              {/* MEJORA 3: Botón de ejecución controlado para estabilización visual */}
               {compPrecioBs !== "" && compPrecioDivisa !== "" ? (
                 <TouchableOpacity
                   style={[
@@ -837,7 +1246,7 @@ function MainApp({
                     styles.diagnosisCard,
                     {
                       backgroundColor: obtenerColorCard(
-                        resultadoComparador.recomendacion,
+                        resultadoComparador.recomendacion
                       ),
                     },
                   ]}
@@ -850,16 +1259,25 @@ function MainApp({
                   </Text>
                   {resultadoComparador.ahorroEstimado > 0 ? (
                     <View style={styles.diagnosisAhorroContainer}>
-                      <Text style={styles.diagnosisAhorro}>
-                        🔥 Ahorras:{" "}
-                        {resultadoComparador.monedaAhorro === "VES"
-                          ? "Bs. "
-                          : "$ "}
-                        {resultadoComparador.ahorroEstimado.toLocaleString(
-                          "es-VE",
-                          { minimumFractionDigits: 2 },
-                        )}
-                      </Text>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <FireIcon size={24} color={theme.accent} />
+                        <Text style={styles.diagnosisAhorro}>
+                          Ahorras:{" "}
+                          {resultadoComparador.monedaAhorro === "VES"
+                            ? "Bs. "
+                            : "$ "}
+                          {resultadoComparador.ahorroEstimado.toLocaleString(
+                            "es-VE",
+                            { minimumFractionDigits: 2 }
+                          )}
+                        </Text>
+                      </View>
                     </View>
                   ) : null}
                   <View style={styles.separator} />
@@ -881,7 +1299,20 @@ function MainApp({
                         ]}
                         numberOfLines={1}
                       >
-                        {index === 0 ? `🏆 ${opcion.nombre}` : opcion.nombre}
+                        {index === 0 ? (
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            <TrophyIcon size={20} color={theme.accent} />
+                            <Text>{opcion.nombre}</Text>
+                          </View>
+                        ) : (
+                          opcion.nombre
+                        )}
                       </Text>
                       <Text
                         style={[
@@ -904,7 +1335,987 @@ function MainApp({
           </Animated.View>
         )}
 
-        {/* PESTAÑA 4: CONFIGURACIÓN GENERAL */}
+        {/* PESTAÑA 4: MULTIMONEDA */}
+        {currentTab === "multimoneda" && (
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Conversor Multi-Moneda
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 24 },
+                ]}
+              >
+                Cambio entre monedas
+              </Text>
+
+              <View style={styles.currencySelectorRow}>
+                <View style={styles.currencySelectorHalf}>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: theme.textSecondary, marginBottom: 8 },
+                    ]}
+                  >
+                    De
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.currencySelectorButton,
+                      {
+                        backgroundColor: theme.surfaceAlt,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                    onPress={() => setShowFromCurrencySelector(true)}
+                  >
+                    {getFlagIcon(
+                      getCurrencyByCode(selectedFromCurrency)?.flagCode || 'us',
+                      18
+                    )}
+                    <Text
+                      style={[
+                        styles.currencySelectorCode,
+                        { color: theme.textPrimary },
+                      ]}
+                    >
+                      {selectedFromCurrency}
+                    </Text>
+                    <Text style={styles.currencySelectorArrow}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <AnimatedButton
+                  style={styles.swapButton}
+                  onPress={handleSwapCurrencies}
+                  hapticType="medium"
+                >
+                  <SwapIcon size={24} color={theme.textPrimary} />
+                </AnimatedButton>
+
+                <View style={styles.currencySelectorHalf}>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: theme.textSecondary, marginBottom: 8 },
+                    ]}
+                  >
+                    A
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.currencySelectorButton,
+                      {
+                        backgroundColor: theme.surfaceAlt,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                    onPress={() => setShowToCurrencySelector(true)}
+                  >
+                    {getFlagIcon(
+                      getCurrencyByCode(selectedToCurrency)?.flagCode || 'us',
+                      18
+                    )}
+                    <Text
+                      style={[
+                        styles.currencySelectorCode,
+                        { color: theme.textPrimary },
+                      ]}
+                    >
+                      {selectedToCurrency}
+                    </Text>
+                    <Text style={styles.currencySelectorArrow}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {showFromCurrencySelector && (
+                <>
+                  <TouchableOpacity
+                    style={styles.currencyBackdrop}
+                    activeOpacity={1}
+                    onPress={() => setShowFromCurrencySelector(false)}
+                  />
+                  <View
+                    style={[
+                      styles.currencyModal,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyModalTitle,
+                        { color: theme.textPrimary },
+                      ]}
+                    >
+                      Seleccionar moneda origen
+                    </Text>
+                    <ScrollView
+                      style={styles.currencyModalList}
+                      nestedScrollEnabled={true}
+                    >
+                      {SUPPORTED_CURRENCIES.map((currency) => (
+                        <TouchableOpacity
+                          key={currency.code}
+                          style={[
+                            styles.currencyModalItem,
+                            selectedFromCurrency === currency.code && {
+                              backgroundColor: theme.accent,
+                            },
+                          ]}
+                          onPress={() => {
+                            setSelectedFromCurrency(currency.code);
+                            setShowFromCurrencySelector(false);
+                          }}
+                        >
+                          {getFlagIcon(currency.flagCode, 20)}
+                          <Text
+                            style={[
+                              styles.currencyModalCode,
+                              selectedFromCurrency === currency.code &&
+                                styles.currencyModalCodeActive,
+                            ]}
+                          >
+                            {currency.code}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.currencyModalName,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            {currency.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                    <TouchableOpacity
+                      style={[
+                        styles.currencyModalClose,
+                        { backgroundColor: theme.surfaceAlt },
+                      ]}
+                      onPress={() => setShowFromCurrencySelector(false)}
+                    >
+                      <Text
+                        style={[
+                          styles.currencyModalCloseText,
+                          { color: theme.textPrimary },
+                        ]}
+                      >
+                        Cerrar
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {showToCurrencySelector && (
+                <>
+                  <TouchableOpacity
+                    style={styles.currencyBackdrop}
+                    activeOpacity={1}
+                    onPress={() => setShowToCurrencySelector(false)}
+                  />
+                  <View
+                    style={[
+                      styles.currencyModal,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyModalTitle,
+                        { color: theme.textPrimary },
+                      ]}
+                    >
+                      Seleccionar moneda destino
+                    </Text>
+                    <ScrollView
+                      style={styles.currencyModalList}
+                      nestedScrollEnabled={true}
+                    >
+                      {SUPPORTED_CURRENCIES.map((currency) => (
+                        <TouchableOpacity
+                          key={currency.code}
+                          style={[
+                            styles.currencyModalItem,
+                            selectedToCurrency === currency.code && {
+                              backgroundColor: theme.success,
+                            },
+                          ]}
+                          onPress={() => {
+                            setSelectedToCurrency(currency.code);
+                            setShowToCurrencySelector(false);
+                          }}
+                        >
+                          {getFlagIcon(currency.flagCode, 20)}
+                          <Text
+                            style={[
+                              styles.currencyModalCode,
+                              selectedToCurrency === currency.code &&
+                                styles.currencyModalCodeActive,
+                            ]}
+                          >
+                            {currency.code}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.currencyModalName,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            {currency.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                    <TouchableOpacity
+                      style={[
+                        styles.currencyModalClose,
+                        { backgroundColor: theme.surfaceAlt },
+                      ]}
+                      onPress={() => setShowToCurrencySelector(false)}
+                    >
+                      <Text
+                        style={[
+                          styles.currencyModalCloseText,
+                          { color: theme.textPrimary },
+                        ]}
+                      >
+                        Cerrar
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>
+                  Monto
+                </Text>
+                <View
+                  style={[
+                    styles.flatInputWrapper,
+                    {
+                      borderColor: theme.border,
+                      backgroundColor: theme.surfaceAlt,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.currencyPrefix, { color: theme.textMuted }]}
+                  >
+                    {getCurrencyByCode(selectedFromCurrency)?.symbol}
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { color: theme.textPrimary, height: 48 },
+                    ]}
+                    keyboardType="numeric"
+                    value={multiCurrencyAmount}
+                    onChangeText={setMultiCurrencyAmount}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.textMuted}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.calculateButton,
+                  { backgroundColor: theme.accent },
+                ]}
+                onPress={handleMultiCurrencyConvert}
+              >
+                <Text style={styles.calculateButtonText}>Convertir</Text>
+              </TouchableOpacity>
+
+              {multiCurrencyResult && (
+                <View
+                  style={[
+                    styles.multiCurrencyResult,
+                    {
+                      backgroundColor: theme.successBg,
+                      borderColor: theme.successBorder,
+                    },
+                  ]}
+                >
+                  <View style={styles.multiCurrencyResultRow}>
+                    <Text
+                      style={[
+                        styles.multiCurrencyResultLabel,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {getCurrencyByCode(selectedFromCurrency)?.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.multiCurrencyResultValue,
+                        { color: theme.textPrimary },
+                      ]}
+                    >
+                      {formatCurrency(
+                        multiCurrencyResult.fromAmount,
+                        selectedFromCurrency
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.multiCurrencyResultArrow}>
+                    <Text
+                      style={[
+                        styles.multiCurrencyArrowText,
+                        { color: theme.accent },
+                      ]}
+                    >
+                      ↓
+                    </Text>
+                  </View>
+                  <View style={styles.multiCurrencyResultRow}>
+                    <Text
+                      style={[
+                        styles.multiCurrencyResultLabel,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {getCurrencyByCode(selectedToCurrency)?.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.multiCurrencyResultValue,
+                        { color: theme.success, fontWeight: '800' },
+                      ]}
+                    >
+                      {formatCurrency(
+                        multiCurrencyResult.toAmount,
+                        selectedToCurrency
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.multiCurrencyRate}>
+                    <Text
+                      style={[
+                        styles.multiCurrencyRateText,
+                        { color: theme.textMuted },
+                      ]}
+                    >
+                      Tasa: 1 {selectedFromCurrency} ={' '}
+                      {multiCurrencyResult.rateUsed.toFixed(4)}{' '}
+                      {selectedToCurrency}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* PESTAÑA 5: HISTORIAL */}
+        {currentTab === "historial" && (
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Historial
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 24 },
+                ]}
+              >
+                Conversiones recientes
+              </Text>
+
+              {conversionHistory.length > 0 && (
+                <View style={styles.historyList}>
+                  {conversionHistory.slice(0, 10).map((record) => (
+                    <Suspense
+                      key={record.id}
+                      fallback={
+                        <ActivityIndicator size="small" color={theme.accent} />
+                      }
+                    >
+                      <SwipeableHistoryItem
+                        record={record}
+                        onDelete={() => handleDeleteConversion(record.id)}
+                        onShare={() => handleShareConversion(record)}
+                        theme={theme}
+                      />
+                    </Suspense>
+                  ))}
+                  {conversionHistory.length > 10 && (
+                    <TouchableOpacity
+                      style={[
+                        styles.historyClear,
+                        { backgroundColor: theme.surface },
+                      ]}
+                      onPress={handleClearHistory}
+                      accessible={true}
+                      accessibilityLabel="Limpiar todo el historial"
+                      accessibilityHint="Elimina todas las conversiones guardadas"
+                    >
+                      <Text
+                        style={[
+                          styles.historyClearText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        Limpiar todo el historial
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {conversionHistory.length === 0 && (
+                <View
+                  style={[
+                    styles.historyEmpty,
+                    { backgroundColor: theme.surfaceAlt },
+                  ]}
+                >
+                  <Text style={styles.historyEmptyText}>
+                    No hay conversiones recientes
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* PESTAÑA 6: TENDENCIAS */}
+        {currentTab === "tendencias" && (
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Tendencias
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 24 },
+                ]}
+              >
+                Tasa de cambio (30 días)
+              </Text>
+
+              {ratesHistory.length > 0 && (
+                <View
+                  style={[
+                    styles.chartContainer,
+                    { backgroundColor: theme.surface },
+                  ]}
+                >
+                  <View style={styles.chartLegend}>
+                    <View style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendDot,
+                          { backgroundColor: '#2c6bbd' },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.legendText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        BCV
+                      </Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendDot,
+                          { backgroundColor: '#8EA5FF' },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.legendText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        P2P
+                      </Text>
+                    </View>
+                  </View>
+                  <LineChart
+                    data={getChartData(ratesHistory)}
+                    width={Dimensions.get("window").width - 60}
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: theme.surface,
+                      backgroundGradientFrom: theme.surface,
+                      backgroundGradientTo: theme.surface,
+                      decimalPlaces: 2,
+                      color: () => theme.textSecondary,
+                      labelColor: () => theme.textMuted,
+                      style: {
+                        borderRadius: 16,
+                      },
+                      propsForDots: {
+                        r: "3",
+                        strokeWidth: "2",
+                        stroke: theme.accent,
+                      },
+                    }}
+                    bezier
+                    style={styles.chart}
+                  />
+                  {(() => {
+                    const stats = getRateStats(ratesHistory);
+                    return (
+                      <View style={styles.statsContainer}>
+                        <View style={styles.statItem}>
+                          <Text
+                            style={[
+                              styles.statLabel,
+                              { color: theme.textMuted },
+                            ]}
+                          >
+                            BCV Actual
+                          </Text>
+                          <Text
+                            style={[
+                              styles.statValue,
+                              { color: theme.textPrimary },
+                            ]}
+                          >
+                            Bs. {stats.bcv.current.toFixed(2)}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.statChange,
+                              {
+                                color:
+                                  stats.bcv.change >= 0
+                                    ? theme.success
+                                    : '#EF4444',
+                              },
+                            ]}
+                          >
+                            {stats.bcv.change >= 0 ? "▲" : "▼"}{' '}
+                            {Math.abs(stats.bcv.change).toFixed(2)}%
+                          </Text>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Text
+                            style={[
+                              styles.statLabel,
+                              { color: theme.textMuted },
+                            ]}
+                          >
+                            Promedio 30d
+                          </Text>
+                          <Text
+                            style={[
+                              styles.statValue,
+                              { color: theme.textPrimary },
+                            ]}
+                          >
+                            Bs. {stats.bcv.average.toFixed(2)}
+                          </Text>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Text
+                            style={[
+                              styles.statLabel,
+                              { color: theme.textMuted },
+                            ]}
+                          >
+                            Máx/Mín
+                          </Text>
+                          <Text
+                            style={[
+                              styles.statValue,
+                              { color: theme.textPrimary },
+                            ]}
+                          >
+                            {stats.bcv.max.toFixed(0)} /{' '}
+                            {stats.bcv.min.toFixed(0)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* PESTAÑA 7: ALERTAS */}
+        {currentTab === "alertas" && (
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            <View style={styles.flatContainer}>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.accent, marginBottom: 2 },
+                ]}
+              >
+                Alertas
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: theme.textPrimary, marginBottom: 24 },
+                ]}
+              >
+                Alertas de tasa
+              </Text>
+
+              <View style={styles.alertsContainer}>
+                <View
+                  style={[
+                    styles.alertForm,
+                    {
+                      backgroundColor: theme.surfaceAlt,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: theme.textSecondary, marginBottom: 8 },
+                    ]}
+                  >
+                    Nueva Alerta
+                  </Text>
+                  <View style={styles.alertFormRow}>
+                    <View style={styles.alertFormHalf}>
+                      <Text
+                        style={[
+                          styles.alertFormLabel,
+                          { color: theme.textMuted },
+                        ]}
+                      >
+                        Tipo
+                      </Text>
+                      <View
+                        style={[
+                          styles.toggleContainer,
+                          { backgroundColor: theme.surface, marginBottom: 0 },
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={[
+                            styles.toggleButton,
+                            newAlertType === "BCV" && {
+                              backgroundColor: theme.accent,
+                            },
+                          ]}
+                          onPress={() => setNewAlertType("BCV")}
+                        >
+                          <Text
+                            style={[
+                              styles.toggleText,
+                              newAlertType === "BCV" && styles.toggleTextActive,
+                            ]}
+                          >
+                            BCV
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.toggleButton,
+                            newAlertType === "BINANCE_BUY" && {
+                              backgroundColor: theme.accent,
+                            },
+                          ]}
+                          onPress={() => setNewAlertType("BINANCE_BUY")}
+                        >
+                          <Text
+                            style={[
+                              styles.toggleText,
+                              newAlertType === "BINANCE_BUY" &&
+                                styles.toggleTextActive,
+                            ]}
+                          >
+                            P2P C
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.toggleButton,
+                            newAlertType === "BINANCE_SELL" && {
+                              backgroundColor: theme.accent,
+                            },
+                          ]}
+                          onPress={() => setNewAlertType("BINANCE_SELL")}
+                        >
+                          <Text
+                            style={[
+                              styles.toggleText,
+                              newAlertType === "BINANCE_SELL" &&
+                                styles.toggleTextActive,
+                            ]}
+                          >
+                            P2P V
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <View style={styles.alertFormHalf}>
+                      <Text
+                        style={[
+                          styles.alertFormLabel,
+                          { color: theme.textMuted },
+                        ]}
+                      >
+                        Condición
+                      </Text>
+                      <View
+                        style={[
+                          styles.toggleContainer,
+                          { backgroundColor: theme.surface, marginBottom: 0 },
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={[
+                            styles.toggleButton,
+                            newAlertCondition === "ABOVE" && {
+                              backgroundColor: theme.success,
+                            },
+                          ]}
+                          onPress={() => setNewAlertCondition("ABOVE")}
+                        >
+                          <Text
+                            style={[
+                              styles.toggleText,
+                              newAlertCondition === "ABOVE" &&
+                                styles.toggleTextActive,
+                            ]}
+                          >
+                            ▲ Arriba
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.toggleButton,
+                            newAlertCondition === "BELOW" && {
+                              backgroundColor: '#EF4444',
+                            },
+                          ]}
+                          onPress={() => setNewAlertCondition("BELOW")}
+                        >
+                          <Text
+                            style={[
+                              styles.toggleText,
+                              newAlertCondition === "BELOW" &&
+                                styles.toggleTextActive,
+                            ]}
+                          >
+                            ▼ Abajo
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.alertInputRow}>
+                    <Text
+                      style={[
+                        styles.alertFormLabel,
+                        { color: theme.textMuted },
+                      ]}
+                    >
+                      Umbral (Bs)
+                    </Text>
+                    <View
+                      style={[
+                        styles.flatInputWrapper,
+                        {
+                          borderColor: theme.border,
+                          backgroundColor: theme.surface,
+                          flex: 1,
+                        },
+                      ]}
+                    >
+                      <TextInput
+                        style={[
+                          styles.input,
+                          { color: theme.textPrimary, height: 44 },
+                        ]}
+                        keyboardType="numeric"
+                        value={newAlertThreshold}
+                        onChangeText={setNewAlertThreshold}
+                        placeholder="0.00"
+                        placeholderTextColor={theme.textMuted}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.alertAddButton,
+                        { backgroundColor: theme.accent },
+                      ]}
+                      onPress={handleAddAlert}
+                    >
+                      <Text style={styles.alertAddButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {rateAlerts.length === 0 ? (
+                  <View
+                    style={[
+                      styles.historyEmpty,
+                      { backgroundColor: theme.surfaceAlt },
+                    ]}
+                  >
+                    <Text style={styles.historyEmptyText}>
+                      No hay alertas configuradas
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.alertsList}>
+                    {rateAlerts.map((alert) => (
+                      <View
+                        key={alert.id}
+                        style={[
+                          styles.alertItem,
+                          {
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          },
+                          !alert.enabled && { opacity: 0.6 },
+                        ]}
+                      >
+                        <View style={styles.alertItemLeft}>
+                          <View style={styles.alertItemHeader}>
+                            <Text
+                              style={[
+                                styles.alertType,
+                                { color: theme.textPrimary },
+                              ]}
+                            >
+                              {alert.type === "BCV"
+                                ? "BCV"
+                                : alert.type === "BINANCE_BUY"
+                                ? "P2P Compra"
+                                : "P2P Venta"}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.alertCondition,
+                                {
+                                  color:
+                                    alert.condition === 'ABOVE'
+                                      ? theme.success
+                                      : '#EF4444',
+                                },
+                              ]}
+                            >
+                              {alert.condition === "ABOVE" ? "▲" : "▼"}{' '}
+                              {alert.threshold.toFixed(2)}
+                            </Text>
+                          </View>
+                          {alert.triggeredAt && (
+                            <Text
+                              style={[
+                                styles.alertTriggered,
+                                { color: theme.textMuted },
+                              ]}
+                            >
+                              Activada:{' '}
+                              {new Date(alert.triggeredAt).toLocaleDateString(
+                                'es-VE'
+                              )}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={styles.alertItemActions}>
+                          <TouchableOpacity
+                            style={[
+                              styles.alertAction,
+                              {
+                                backgroundColor: alert.enabled
+                                  ? theme.successBg
+                                  : theme.surface,
+                              },
+                            ]}
+                            onPress={() =>
+                              handleToggleAlert(alert.id, !alert.enabled)
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.alertActionText,
+                                {
+                                  color: alert.enabled
+                                    ? theme.success
+                                    : theme.textMuted,
+                                },
+                              ]}
+                            >
+                              {alert.enabled ? "ON" : "OFF"}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.alertAction,
+                              { backgroundColor: theme.surface },
+                            ]}
+                            onPress={() => handleDeleteAlert(alert.id)}
+                          >
+                            <TrashIcon size={22} color={theme.textSecondary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* PESTAÑA 8: CONFIGURACIÓN GENERAL */}
         {currentTab === "configuracion" && (
           <Animated.View
             style={{
@@ -929,17 +2340,128 @@ function MainApp({
               >
                 Configuración de la App
               </Text>
+
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.textSecondary, marginBottom: 8 },
+                ]}
+              >
+                Tu Nombre de Perfil
+              </Text>
+              <View
+                style={[
+                  styles.flatInputWrapper,
+                  {
+                    borderColor: theme.border,
+                    backgroundColor: theme.surface,
+                    marginBottom: 16,
+                    paddingRight: 8,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: theme.textPrimary, height: 50 },
+                  ]}
+                  value={nuevoNombreInput}
+                  onChangeText={setNuevoNombreInput}
+                  maxLength={20}
+                  placeholder="Modifica tu nombre"
+                  placeholderTextColor={theme.textMuted}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.inlineSaveButton,
+                    { backgroundColor: theme.accent },
+                  ]}
+                  onPress={guardarNombrePerfil}
+                >
+                  <Text style={styles.inlineSaveButtonText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.textSecondary, marginBottom: 8 },
+                ]}
+              >
+                Tema Visual de la Interfaz
+              </Text>
+              <View
+                style={[
+                  styles.toggleContainer,
+                  { backgroundColor: theme.surfaceAlt, marginBottom: 24 },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    themeMode === "light" && { backgroundColor: theme.accent },
+                  ]}
+                  onPress={() => setThemeMode("light")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      themeMode === "light" && styles.toggleTextActive,
+                    ]}
+                  >
+                    ☀️ Claro
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    themeMode === "dark" && { backgroundColor: theme.accent },
+                  ]}
+                  onPress={() => setThemeMode("dark")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      themeMode === "dark" && styles.toggleTextActive,
+                    ]}
+                  >
+                    <MoonIcon size={20} color={theme.textSecondary} /> Oscuro
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    themeMode === "system" && { backgroundColor: theme.accent },
+                  ]}
+                  onPress={() => setThemeMode("system")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      themeMode === "system" && styles.toggleTextActive,
+                    ]}
+                  >
+                    ⚙️ Auto
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <Text
                 style={[
                   styles.quickActionDesc,
                   {
                     color: theme.textMuted,
                     textAlign: "center",
-                    marginTop: 40,
+                    marginTop: 32,
                   },
                 ]}
               >
-                VeneConvert v1.0.0 • Hecho para Margarita 🏝️
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Text>Arco v1.0 • Hecho en Margarita</Text>
+                  <BeachIcon size={20} color={theme.textMuted} />
+                </View>
               </Text>
             </View>
           </Animated.View>
@@ -949,6 +2471,14 @@ function MainApp({
       <BottomTabs
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
+        onMorePress={() => setShowMoreMenu(true)}
+        theme={theme}
+      />
+
+      <MoreMenu
+        visible={showMoreMenu}
+        onClose={() => setShowMoreMenu(false)}
+        onSelectTab={handleSelectMoreTab}
         theme={theme}
       />
     </ContainerView>
@@ -956,17 +2486,17 @@ function MainApp({
 }
 
 export default function App() {
-  const [nombreUsuario, setNombreUsuario] = useState<string | null>(null);
-  const [inputNombre, setInputNombre] = useState<string>("");
+  const [nombreUsuario, setNombreUsuario] = useState<string>("Usuario");
   const [comprobandoRegistro, setComprobandoRegistro] = useState<boolean>(true);
 
   useEffect(() => {
     const cargarNombre = async () => {
       try {
         const nombreGuardado = await AsyncStorage.getItem("user_name");
-        if (nombreGuardado) setNombreUsuario(nombreGuardado);
+        setNombreUsuario(nombreGuardado || "Usuario");
       } catch (e) {
         console.log(e);
+        setNombreUsuario("Usuario");
       } finally {
         setComprobandoRegistro(false);
       }
@@ -974,74 +2504,10 @@ export default function App() {
     cargarNombre();
   }, []);
 
-  const guardarRegistroUsuario = async () => {
-    if (inputNombre.trim().length < 2) return;
-    await AsyncStorage.setItem("user_name", inputNombre.trim());
-    setNombreUsuario(inputNombre.trim());
-  };
-
   if (comprobandoRegistro) {
     return (
       <SafeAreaProvider>
-        <View style={[styles.welcomeContainer, { backgroundColor: "#060B14" }]}>
-          <ActivityIndicator size="large" color="#A78BFA" />
-        </View>
-      </SafeAreaProvider>
-    );
-  }
-
-  if (!nombreUsuario) {
-    return (
-      <SafeAreaProvider>
-        <View style={[styles.welcomeContainer, { backgroundColor: "#060B14" }]}>
-          <View style={styles.welcomeCard}>
-            <Text style={styles.welcomeEmoji}>🇲🇬</Text>
-            <Text style={styles.welcomeTitle}>
-              ¡Te damos la bienvenida a VeneConvert!
-            </Text>
-            <Text style={styles.welcomeSubtitle}>
-              Tu aliado inteligente para calcular tasas y decidir tus compras en
-              tiempo real en Margarita. ¿Cómo te llamas?
-            </Text>
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  borderColor: "rgba(255,255,255,0.15)",
-                  backgroundColor: "#111827",
-                  marginTop: 20,
-                },
-              ]}
-            >
-              <TextInput
-                style={[
-                  styles.input,
-                  { color: "#F9FAFB", fontSize: 16, textAlign: "center" },
-                ]}
-                placeholder="Ingresa tu nombre o apodo"
-                placeholderTextColor="#94A3B8"
-                value={inputNombre}
-                onChangeText={setInputNombre}
-                maxLength={20}
-              />
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.welcomeButton,
-                {
-                  backgroundColor:
-                    inputNombre.trim().length >= 2
-                      ? "#8B5CF6"
-                      : "rgba(139, 92, 246, 0.4)",
-                },
-              ]}
-              onPress={guardarRegistroUsuario}
-              disabled={inputNombre.trim().length < 2}
-            >
-              <Text style={styles.welcomeButtonText}>Comenzar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <LoadingScreen />
       </SafeAreaProvider>
     );
   }
@@ -1064,49 +2530,54 @@ const styles = StyleSheet.create({
       Platform.OS === "web"
         ? 30
         : RNStatusBar.currentHeight
-          ? RNStatusBar.currentHeight + 45
-          : 50,
+        ? RNStatusBar.currentHeight + 45
+        : 50,
     paddingBottom: 160,
     flexGrow: 1,
   },
   heroCard: {
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 16,
-    marginBottom: 16,
+    borderRadius: 36,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 24,
+    marginBottom: 24,
     overflow: "hidden",
-    elevation: 10,
+    elevation: 8,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
+    shadowColor: "#53A548",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
   },
   heroGlow: {
     position: "absolute",
-    top: -30,
-    right: -20,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(139, 92, 246, 0.2)",
+    top: -60,
+    right: -50,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: "#91CB3E",
+    opacity: 0.18,
   },
   heroEyebrow: {
     fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
+    fontWeight: "800",
+    letterSpacing: 1.8,
     textTransform: "uppercase",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   heroTitle: {
-    fontSize: Platform.OS === "web" ? 28 : 24,
+    fontSize: Platform.OS === "web" ? 34 : 30,
     fontWeight: "800",
-    marginBottom: 8,
+    marginBottom: 12,
     letterSpacing: -0.6,
-    lineHeight: Platform.OS === "web" ? 34 : 30,
+    lineHeight: Platform.OS === "web" ? 40 : 36,
   },
-  heroSubtitle: { fontSize: 14, lineHeight: 21, maxWidth: 320 },
-  heroPills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
-  heroPill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
-  heroPillText: { fontSize: 11, fontWeight: "700", color: "#F3F4F6" },
+  heroSubtitle: { fontSize: 15, lineHeight: 24, maxWidth: 380 },
+  heroPills: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 },
+  heroPill: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 999 },
+  heroPillText: { fontSize: 12, fontWeight: "700", color: "#F3F4F6" },
   headerWithSyncRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1119,76 +2590,115 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 10,
+    letterSpacing: 1.2,
+    marginBottom: 14,
     marginLeft: 4,
   },
-  ratesContainer: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  ratesContainer: { flexDirection: "row", gap: 10, marginBottom: 18 },
   loadingBox: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 18,
   },
   rateBox: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    borderRadius: 28,
     alignItems: "center",
     borderWidth: 1,
-    minHeight: 74,
+    minHeight: 92,
     justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#53A548",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
   },
   rateLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "800",
     textTransform: "uppercase",
-    marginBottom: 4,
+    marginBottom: 5,
+    letterSpacing: 0.5,
   },
-  rateValue: { fontSize: 14, fontWeight: "700" },
-  quickActionsGrid: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  rateValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 18,
+  },
+  quickActionsGridTablet: { flexWrap: "wrap" },
   quickActionCard: {
     flex: 1,
-    padding: 16,
-    borderRadius: 22,
+    minWidth: "45%",
+    padding: 24,
+    borderRadius: 32,
     borderWidth: 1,
     alignItems: "center",
+    elevation: 4,
+    shadowColor: "#53A548",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
   },
-  quickActionEmoji: { fontSize: 24, marginBottom: 6 },
-  quickActionTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
-  quickActionDesc: { fontSize: 11, fontWeight: "500" },
-  tipCard: { padding: 16, borderRadius: 22, borderWidth: 1, marginBottom: 10 },
+  quickActionIcon: { marginBottom: 10 },
+  quickActionEmoji: { fontSize: 28, marginBottom: 10 },
+  quickActionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  quickActionDesc: { fontSize: 12, fontWeight: "500", lineHeight: 16 },
+  tipCard: { padding: 24, borderRadius: 32, borderWidth: 1, marginBottom: 16 },
   tipTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
-    marginBottom: 6,
-    color: "#8B5CF6",
+    marginBottom: 8,
+    color: lightTheme.accent,
   },
-  tipText: { fontSize: 12, lineHeight: 18, fontWeight: "500" },
-  flatContainer: { paddingVertical: 6, paddingHorizontal: 2, width: "100%" },
+  tipText: { fontSize: 13, lineHeight: 20, fontWeight: "500" },
+  flatContainer: { paddingVertical: 8, paddingHorizontal: 4, width: "100%" },
   flatInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 2,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 6,
   },
-  calculateButton: {
-    width: "100%",
-    height: 52,
-    borderRadius: 16,
+  inlineSaveButton: {
+    paddingHorizontal: 18,
+    height: 42,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
-    marginBottom: 6,
-    elevation: 2,
-    boxShadow: "0px 4px 12px rgba(139, 92, 246, 0.25)",
   },
-  calculateButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  inlineSaveButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  calculateButton: {
+    width: "100%",
+    height: 62,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 12,
+    elevation: 5,
+    shadowColor: "#53A548",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+  },
+  calculateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   cardLabel: {
     fontSize: 12,
     fontWeight: "700",
@@ -1203,33 +2713,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 2,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
-  currencyPrefix: { fontSize: 16, fontWeight: "700", marginRight: 10 },
-  input: { flex: 1, height: 56, fontSize: 18, fontWeight: "600" },
+  currencyPrefix: { fontSize: 17, fontWeight: "700", marginRight: 12 },
+  input: { flex: 1, height: 58, fontSize: 18, fontWeight: "600" },
   toggleContainer: {
     flexDirection: "row",
     padding: 6,
-    borderRadius: 16,
-    marginBottom: 20,
+    borderRadius: 18,
+    marginBottom: 22,
     gap: 6,
   },
   toggleButton: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 48,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: 14,
+    paddingHorizontal: 10,
   },
-  toggleText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    letterSpacing: 0.2,
+  },
   toggleTextActive: { color: "#FFFFFF", fontWeight: "700" },
   diagnosisCard: {
-    marginTop: 24,
-    padding: 20,
-    borderRadius: 24,
+    marginTop: 28,
+    padding: 24,
+    borderRadius: 28,
     elevation: 4,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
@@ -1238,23 +2753,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     color: "rgba(255,255,255,0.65)",
-    letterSpacing: 1.5,
-    marginBottom: 8,
+    letterSpacing: 1.8,
+    marginBottom: 10,
   },
   diagnosisText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 12,
-    lineHeight: 23,
+    marginBottom: 14,
+    lineHeight: 24,
   },
   diagnosisAhorroContainer: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255, 255, 255, 0.18)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    marginBottom: 6,
   },
   diagnosisAhorro: { fontSize: 14, fontWeight: "800", color: "#FFFFFF" },
   separator: {
@@ -1303,23 +2818,23 @@ const styles = StyleSheet.create({
   },
   welcomeCard: {
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 380,
     alignItems: "center",
-    padding: 24,
-    borderRadius: 28,
+    padding: 28,
+    borderRadius: 32,
     backgroundColor: "#111827",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
-    elevation: 10,
+    elevation: 8,
   },
-  welcomeEmoji: { fontSize: 42, marginBottom: 16 },
+  welcomeEmoji: { fontSize: 44, marginBottom: 18 },
   welcomeTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800",
     color: "#F9FAFB",
     textAlign: "center",
-    marginBottom: 10,
-    letterSpacing: -0.5,
+    marginBottom: 12,
+    letterSpacing: -0.6,
   },
   welcomeSubtitle: {
     fontSize: 14,
@@ -1330,12 +2845,309 @@ const styles = StyleSheet.create({
   },
   welcomeButton: {
     width: "100%",
-    height: 52,
-    borderRadius: 16,
+    height: 56,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
-    elevation: 3,
+    marginTop: 24,
+    elevation: 4,
   },
   welcomeButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  historyToggle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 14,
+    elevation: 2,
+    shadowColor: "#53A548",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  historyToggleText: { fontSize: 14, fontWeight: "700" },
+  historyCount: { fontSize: 12, fontWeight: "600" },
+  historyList: { gap: 8, marginBottom: 12 },
+  historyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  historyItemLeft: { flex: 1 },
+  historyDate: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
+  historyConversion: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
+  historyRate: { fontSize: 11, fontWeight: "500" },
+  historyItemActions: {
+    flexDirection: "row",
+    gap: 6,
+    marginLeft: 8,
+  },
+  historyAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  historyActionText: { fontSize: 14 },
+  historyDelete: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  historyDeleteText: { fontSize: 14 },
+  historyClear: {
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  historyClearText: { fontSize: 13, fontWeight: "600" },
+  historyEmpty: {
+    padding: 20,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  historyEmptyText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
+  chartContainer: {
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    marginBottom: 12,
+  },
+  chartLegend: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 20,
+    marginBottom: 12,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: { fontSize: 12, fontWeight: "600" },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.08)",
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statLabel: { fontSize: 11, fontWeight: "600", marginBottom: 4 },
+  statValue: { fontSize: 16, fontWeight: "700", marginBottom: 2 },
+  statChange: { fontSize: 11, fontWeight: "700" },
+  alertsContainer: { gap: 12, marginBottom: 12 },
+  alertForm: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  alertFormRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  alertFormHalf: { flex: 1 },
+  alertFormLabel: { fontSize: 11, fontWeight: "600", marginBottom: 6 },
+  alertInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  alertAddButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  alertAddButtonText: { fontSize: 20, fontWeight: "700", color: "#FFFFFF" },
+  alertsList: { gap: 8 },
+  alertItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  alertItemLeft: { flex: 1 },
+  alertItemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  alertType: { fontSize: 14, fontWeight: "700" },
+  alertCondition: { fontSize: 13, fontWeight: "700" },
+  alertTriggered: { fontSize: 11, fontWeight: "500" },
+  alertItemActions: {
+    flexDirection: "row",
+    gap: 6,
+    marginLeft: 8,
+  },
+  alertAction: {
+    paddingHorizontal: 10,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 44,
+  },
+  alertActionText: { fontSize: 11, fontWeight: "700" },
+  multiCurrencyCard: {
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  multiCurrencyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  loadingText: { fontSize: 11, fontWeight: "600" },
+  currencyBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "transparent",
+    zIndex: 1000,
+  },
+  currencySelectorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  currencySelectorHalf: { flex: 1 },
+  currencySelectorButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  currencySelectorFlag: { fontSize: 18 },
+  currencySelectorCode: { fontSize: 14, fontWeight: "700" },
+  currencySelectorArrow: { fontSize: 12, color: "#64748B" },
+  currencyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  currencyOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+    gap: 4,
+  },
+  currencyFlag: { fontSize: 14 },
+  currencyCode: { fontSize: 12, fontWeight: "600", color: "#64748B" },
+  currencyCodeActive: { color: "#FFFFFF", fontWeight: "700" },
+  currencyModal: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+    maxHeight: 300,
+    zIndex: 1001,
+  },
+  currencyModalTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  currencyModalList: {
+    maxHeight: 200,
+    marginBottom: 12,
+  },
+  currencyModalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 6,
+    gap: 10,
+  },
+  currencyModalFlag: { fontSize: 20 },
+  currencyModalCode: { fontSize: 14, fontWeight: "700", color: "#64748B" },
+  currencyModalCodeActive: { color: "#FFFFFF", fontWeight: "700" },
+  currencyModalName: { fontSize: 13, fontWeight: "500", flex: 1 },
+  currencyModalClose: {
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  currencyModalCloseText: { fontSize: 13, fontWeight: "700" },
+  swapButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 8,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  swapButtonText: { fontSize: 18 },
+  multiCurrencyResult: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  multiCurrencyResultRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  multiCurrencyResultLabel: { fontSize: 13, fontWeight: "600" },
+  multiCurrencyResultValue: { fontSize: 15, fontWeight: "700" },
+  multiCurrencyResultArrow: {
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  multiCurrencyArrowText: { fontSize: 16 },
+  multiCurrencyRate: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+    alignItems: "center",
+  },
+  multiCurrencyRateText: { fontSize: 11, fontWeight: "600" },
 });

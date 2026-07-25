@@ -2,11 +2,11 @@
   "expo": {
     "name": "Arco",
     "slug": "arco",
-    "version": "1.0.0",
+    "version": "1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#060B14",
+    "backgroundColor": "#FFFFFF",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -31,6 +31,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c4563bd2-78ac-4111-87dc-4b1a10fcf89d"
+      }
+    },
+    "owner": "mocabytes"
   }
 }

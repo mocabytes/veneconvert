@@ -38,7 +38,7 @@ export function analizarCompra(
   precioBs: number,
   precioDivisa: number,
   tasas: TasasEntrada,
-  comisionBinancePct: number = 0,
+  comisionBinancePct: number = 0
 ): ResultadoAnalisis | null {
   // Validación de seguridad para evitar divisiones por cero o cálculos inválidos
   if (
