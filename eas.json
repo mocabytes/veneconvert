@@ -12,6 +12,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_SKIP_AUTO_FINGERPRINT": "1"
       }
     },
     "production": {

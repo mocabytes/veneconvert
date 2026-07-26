@@ -26,8 +26,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#060B14"
       },
-      "package": "com.mocabytes.arco",
-      "softwareKeyboardLayoutMode": "resize"
+      "package": "com.mocabytes.arco"
     },
     "web": {
       "favicon": "./assets/favicon.png"

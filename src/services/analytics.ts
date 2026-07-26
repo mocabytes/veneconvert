@@ -1,25 +1,13 @@
-import analytics from '@react-native-firebase/analytics';
-
+// Analytics service stub - Firebase Analytics disabled
 export const AnalyticsService = {
   // Log screen view
   logScreenView: async (screenName: string) => {
-    try {
-      await analytics().logScreenView({
-        screen_name: screenName,
-        screen_class: screenName,
-      });
-    } catch (error) {
-      console.error('Analytics error:', error);
-    }
+    console.log('Analytics: Screen view', screenName);
   },
 
   // Log custom event
   logEvent: async (name: string, params?: { [key: string]: any }) => {
-    try {
-      await analytics().logEvent(name, params);
-    } catch (error) {
-      console.error('Analytics error:', error);
-    }
+    console.log('Analytics: Event', name, params);
   },
 
   // Log conversion
@@ -28,32 +16,16 @@ export const AnalyticsService = {
     toCurrency: string,
     amount: number
   ) => {
-    try {
-      await analytics().logEvent('conversion', {
-        from_currency: fromCurrency,
-        to_currency: toCurrency,
-        amount: amount,
-      });
-    } catch (error) {
-      console.error('Analytics error:', error);
-    }
+    console.log('Analytics: Conversion', { fromCurrency, toCurrency, amount });
   },
 
   // Set user ID
   setUserId: async (userId: string) => {
-    try {
-      await analytics().setUserId(userId);
-    } catch (error) {
-      console.error('Analytics error:', error);
-    }
+    console.log('Analytics: Set user ID', userId);
   },
 
   // Set user properties
   setUserProperty: async (name: string, value: string) => {
-    try {
-      await analytics().setUserProperty(name, value);
-    } catch (error) {
-      console.error('Analytics error:', error);
-    }
+    console.log('Analytics: Set user property', name, value);
   },
 };
