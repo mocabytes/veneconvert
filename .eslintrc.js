@@ -2,7 +2,7 @@ module.exports = {
   root: true,
   extends: ['@react-native-community'],
   plugins: ['security'],
-  ignorePatterns: ['detox.config.js', 'e2e/**', 'jest.config.js', '.eslintrc.js'],
+  ignorePatterns: ['detox.config.js', 'e2e/**', 'jest.config.js', '.eslintrc.js', 'coverage/**'],
   rules: {
     'security/detect-object-injection': 'off',
     'security/detect-non-literal-regexp': 'off',
@@ -20,5 +20,6 @@ module.exports = {
     'react-hooks/exhaustive-deps': 'off',
     'react-native/no-inline-styles': 'off',
     'no-alert': 'off',
+    'comma-dangle': 'off',
   },
 };

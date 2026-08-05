@@ -12,7 +12,6 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { lightTheme, darkTheme } from "../theme/colors";
 import { ONBOARDING_DATA } from "../constants/recommendations";
 import {
   ExchangeIcon,

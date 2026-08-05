@@ -10,7 +10,6 @@ import {
   Image,
   Pressable,
 } from "react-native";
-import { lightTheme, darkTheme } from "../theme/colors";
 import {
   SunIcon,
   MoonIcon,

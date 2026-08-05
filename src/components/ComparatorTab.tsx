@@ -7,10 +7,9 @@ import {
   TouchableOpacity,
   Animated,
   Platform,
-  ScrollView,
 } from "react-native";
 import { FireIcon, TrophyIcon } from "./Icons";
-import { analizarCompra, MonedaUsuario, TasasEntrada } from "../utils/calculations";
+import { analizarCompra, MonedaUsuario } from "../utils/calculations";
 
 interface ComparatorTabProps {
   monedaOrigen: MonedaUsuario;
@@ -38,8 +37,6 @@ interface ComparatorTabProps {
   };
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
-  tasas: TasasEntrada;
-  comisionBinance: number;
 }
 
 export default function ComparatorTab({
@@ -57,8 +54,6 @@ export default function ComparatorTab({
   theme,
   fadeAnim,
   slideAnim,
-  tasas,
-  comisionBinance,
 }: ComparatorTabProps) {
   const obtenerColorCard = (rec: string) => {
     if (rec.includes("DIRECTO")) {

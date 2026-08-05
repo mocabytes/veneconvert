@@ -5,7 +5,6 @@ import {
   Image,
   Animated,
   Dimensions,
-  Text,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 

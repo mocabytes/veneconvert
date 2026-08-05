@@ -157,11 +157,6 @@ function MainApp({
   const [multiCurrencyAmount, setMultiCurrencyAmount] = useState<string>("");
   const [multiCurrencyResult, setMultiCurrencyResult] =
     useState<ConversionResult | null>(null);
-  const [multiCurrencyRates, setMultiCurrencyRates] = useState<{
-    [key: string]: number;
-  }>({});
-  const [loadingMultiCurrencyRates, setLoadingMultiCurrencyRates] =
-    useState<boolean>(false);
   const [showFromCurrencySelector, setShowFromCurrencySelector] =
     useState<boolean>(false);
   const [showToCurrencySelector, setShowToCurrencySelector] =
@@ -344,7 +339,6 @@ function MainApp({
     const historicalData = generateHistoricalRates(30);
     setRatesHistory(historicalData);
     loadAlerts();
-    loadMultiCurrencyRates();
   }, []);
 
   const loadAlerts = async () => {
@@ -385,13 +379,11 @@ function MainApp({
       return;
     }
 
-    setLoadingMultiCurrencyRates(true);
     try {
       const rates = await getExchangeRates("VES", {
         bcv: tasas.bcv,
         binanceBuy: tasas.binanceBuy,
       });
-      setMultiCurrencyRates(rates);
       const result = convertCurrency(
         amount,
         selectedFromCurrency,
@@ -401,8 +393,6 @@ function MainApp({
       setMultiCurrencyResult(result);
     } catch (error) {
       console.error("Error en conversión multi-moneda:", error);
-    } finally {
-      setLoadingMultiCurrencyRates(false);
     }
   };
 
@@ -411,21 +401,6 @@ function MainApp({
     setSelectedFromCurrency(selectedToCurrency);
     setSelectedToCurrency(temp);
     setMultiCurrencyResult(null);
-  };
-
-  const loadMultiCurrencyRates = async () => {
-    setLoadingMultiCurrencyRates(true);
-    try {
-      const rates = await getExchangeRates("VES", {
-        bcv: tasas.bcv,
-        binanceBuy: tasas.binanceBuy,
-      });
-      setMultiCurrencyRates(rates);
-    } catch (error) {
-      console.error("Error cargando tasas multi-moneda:", error);
-    } finally {
-      setLoadingMultiCurrencyRates(false);
-    }
   };
 
   const handleBsChange = async (value: string) => {

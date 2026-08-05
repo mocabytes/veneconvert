@@ -6,12 +6,8 @@ import {
   TextInput,
   Animated,
 } from "react-native";
-import { triggerHapticForAction } from "../utils/haptic";
-import { saveConversion } from "../utils/history";
-import type { TasasEntrada } from "../utils/calculations";
 
 interface ConverterTabProps {
-  tasas: TasasEntrada;
   bs: string;
   usdBcv: string;
   usdtBinance: string;
@@ -35,7 +31,6 @@ interface ConverterTabProps {
 }
 
 export default function ConverterTab({
-  tasas,
   bs,
   usdBcv,
   usdtBinance,

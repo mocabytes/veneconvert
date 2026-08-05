@@ -27,7 +27,7 @@ describe('analizarCompra', () => {
       const resultado = analizarCompra(
         'VES',
         1000, // precioBs
-        30,   // precioDivisa (más alto, menos conveniente pagar directo)
+        20,   // precioDivisa (más bajo, más conveniente cambiar a USDT)
         tasasBase,
         0.2
       );
@@ -37,11 +37,17 @@ describe('analizarCompra', () => {
     });
 
     it('debe manejar valores iguales', () => {
+      // Usar tasas que generen igualdad exacta
+      const tasasIgualdad: TasasEntrada = {
+        bcv: 36.5,
+        binanceBuy: 50, // Tasa más simple para cálculo exacto
+        binanceSell: 39.5,
+      };
       const resultado = analizarCompra(
         'VES',
         1000,
-        24.66, // Valor calculado para que sea igual
-        tasasBase,
+        20, // 1000 / 50 = 20, igualdad exacta
+        tasasIgualdad,
         0
       );
 
@@ -66,7 +72,7 @@ describe('analizarCompra', () => {
     it('debe recomendar vender USDT cuando es más conveniente', () => {
       const resultado = analizarCompra(
         'USD',
-        1500, // precioBs alto
+        1000, // precioBs más bajo para hacer conveniente vender USDT
         30,   // precioDivisa
         tasasBase,
         0.2
@@ -144,14 +150,6 @@ describe('analizarCompra', () => {
 
   describe('comisiones', () => {
     it('debe considerar la comisión de Binance', () => {
-      const resultadoSinComision = analizarCompra(
-        'VES',
-        1000,
-        25,
-        tasasBase,
-        0
-      );
-
       const resultadoConComision = analizarCompra(
         'VES',
         1000,

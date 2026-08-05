@@ -7,7 +7,6 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { lightTheme, darkTheme } from "../theme/colors";
 import {
   GlobeIcon,
   BookIcon,
