@@ -5,6 +5,9 @@ import {
   clearRateHistory,
   getChartData,
   getRateStats,
+  findRateByDate,
+  findNearestRate,
+  parseDateInput,
   RateHistoryPoint,
 } from '../ratesHistory';
 
@@ -176,6 +179,87 @@ describe('Rate History Utils', () => {
       const stats = getRateStats(history);
 
       expect(stats.bcv.change).toBe(0);
+    });
+  });
+
+  describe('findRateByDate', () => {
+    const history: RateHistoryPoint[] = [
+      { date: '2026-08-10', bcv: 100, binance: 110 },
+      { date: '2026-08-12', bcv: 102, binance: 112 },
+    ];
+
+    it('debe devolver el punto de la fecha exacta', () => {
+      expect(findRateByDate(history, '2026-08-12')).toEqual({
+        date: '2026-08-12',
+        bcv: 102,
+        binance: 112,
+      });
+    });
+
+    it('debe devolver null si ese día no tiene registro', () => {
+      expect(findRateByDate(history, '2026-08-11')).toBeNull();
+    });
+
+    it('debe devolver null con historial vacío', () => {
+      expect(findRateByDate([], '2026-08-12')).toBeNull();
+    });
+  });
+
+  describe('findNearestRate', () => {
+    const history: RateHistoryPoint[] = [
+      { date: '2026-08-10', bcv: 100, binance: 110 },
+      { date: '2026-08-14', bcv: 104, binance: 114 },
+    ];
+
+    it('debe devolver el punto exacto si existe', () => {
+      expect(findNearestRate(history, '2026-08-10')?.date).toBe('2026-08-10');
+    });
+
+    it('debe devolver el día más cercano', () => {
+      expect(findNearestRate(history, '2026-08-11')?.date).toBe('2026-08-10');
+      expect(findNearestRate(history, '2026-08-13')?.date).toBe('2026-08-14');
+    });
+
+    it('debe preferir el día anterior en caso de empate', () => {
+      expect(findNearestRate(history, '2026-08-12')?.date).toBe('2026-08-10');
+    });
+
+    it('debe devolver null con historial vacío', () => {
+      expect(findNearestRate([], '2026-08-12')).toBeNull();
+    });
+  });
+
+  describe('parseDateInput', () => {
+    it('debe convertir DD/MM/AAAA a ISO', () => {
+      expect(parseDateInput('12/08/2026')).toBe('2026-08-12');
+      expect(parseDateInput(' 5/1/2026 ')).toBe('2026-01-05');
+    });
+
+    it('debe aceptar el 29 de febrero en año bisiesto', () => {
+      expect(parseDateInput('29/02/2024')).toBe('2024-02-29');
+    });
+
+    it('debe rechazar formatos inválidos', () => {
+      expect(parseDateInput('2026-08-12')).toBeNull();
+      expect(parseDateInput('12-08-2026')).toBeNull();
+      expect(parseDateInput('hola')).toBeNull();
+      expect(parseDateInput('')).toBeNull();
+    });
+
+    it('debe rechazar fechas imposibles', () => {
+      expect(parseDateInput('31/02/2026')).toBeNull();
+      expect(parseDateInput('29/02/2023')).toBeNull();
+      expect(parseDateInput('32/01/2026')).toBeNull();
+      expect(parseDateInput('12/13/2026')).toBeNull();
+    });
+
+    it('debe rechazar fechas futuras', () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const input = `${String(tomorrow.getDate()).padStart(2, '0')}/${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, '0')}/${tomorrow.getFullYear()}`;
+      expect(parseDateInput(input)).toBeNull();
     });
   });
 });
