@@ -5,20 +5,24 @@ import {
   Image,
   Animated,
   Dimensions,
+  Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 
 const { width } = Dimensions.get("window");
+const useNativeDriver = Platform.OS !== "web";
 
 export default function LoadingScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
   const dot1Anim = useRef(new Animated.Value(0)).current;
   const dot2Anim = useRef(new Animated.Value(0)).current;
   const dot3Anim = useRef(new Animated.Value(0)).current;
 
   const pulseAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const floatAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const dot1AnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const dot2AnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const dot3AnimRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -27,13 +31,13 @@ export default function LoadingScreen() {
     const fadeIn = Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
-      useNativeDriver: true,
+      useNativeDriver,
     });
 
     const scaleUp = Animated.timing(scaleAnim, {
       toValue: 1,
       duration: 800,
-      useNativeDriver: true,
+      useNativeDriver,
     });
 
     pulseAnimRef.current = Animated.loop(
@@ -41,12 +45,27 @@ export default function LoadingScreen() {
         Animated.timing(pulseAnim, {
           toValue: 1.08,
           duration: 1200,
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1200,
-          useNativeDriver: true,
+          useNativeDriver,
+        }),
+      ])
+    );
+
+    floatAnimRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -8,
+          duration: 1400,
+          useNativeDriver,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1400,
+          useNativeDriver,
         }),
       ])
     );
@@ -58,12 +77,12 @@ export default function LoadingScreen() {
             toValue: 1,
             duration: 600,
             delay,
-            useNativeDriver: true,
+            useNativeDriver,
           }),
           Animated.timing(anim, {
             toValue: 0.3,
             duration: 600,
-            useNativeDriver: true,
+            useNativeDriver,
           }),
         ])
       );
@@ -71,6 +90,7 @@ export default function LoadingScreen() {
 
     Animated.parallel([fadeIn, scaleUp]).start();
     pulseAnimRef.current.start();
+    floatAnimRef.current.start();
     dot1AnimRef.current = dotAnimation(dot1Anim, 0);
     dot2AnimRef.current = dotAnimation(dot2Anim, 200);
     dot3AnimRef.current = dotAnimation(dot3Anim, 400);
@@ -80,6 +100,7 @@ export default function LoadingScreen() {
 
     return () => {
       pulseAnimRef.current?.stop();
+      floatAnimRef.current?.stop();
       dot1AnimRef.current?.stop();
       dot2AnimRef.current?.stop();
       dot3AnimRef.current?.stop();
@@ -114,15 +135,17 @@ export default function LoadingScreen() {
           styles.logoContainer,
           {
             opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
+            transform: [{ scale: scaleAnim }, { translateY: floatAnim }],
           },
         ]}
       >
-        <Image
-          source={require("../../assets/splash-icon.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoTile}>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.logo}
+            resizeMode="cover"
+          />
+        </View>
 
         {/* Loading indicator */}
         <View style={styles.loadingIndicator}>
@@ -185,33 +208,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#060B14",
+    backgroundColor: "#0B0F0E",
   },
   circle: {
     position: "absolute",
     width: width * 0.5,
     height: width * 0.5,
     borderRadius: width * 0.25,
-    backgroundColor: "#53A548",
-    opacity: 0.15,
+    backgroundColor: "#10B981",
+    opacity: 0.12,
   },
   circleOuter: {
     position: "absolute",
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
-    backgroundColor: "#91CB3E",
-    opacity: 0.08,
+    backgroundColor: "#34D399",
+    opacity: 0.06,
   },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 32,
   },
+  logoTile: {
+    width: 112,
+    height: 112,
+    borderRadius: 26,
+    overflow: "hidden",
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 24,
+    width: 112,
+    height: 112,
   },
   loadingIndicator: {
     flexDirection: "row",
@@ -224,19 +255,20 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#53A548",
+    backgroundColor: "#10B981",
   },
   appName: {
     fontSize: 32,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 2,
+    fontWeight: "800",
+    color: "#F4F7F5",
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 14,
-    color: "#94A3B8",
+    color: "#6B7A74",
     textAlign: "center",
     paddingHorizontal: 32,
+    fontWeight: "500",
   },
 });

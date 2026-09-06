@@ -3,15 +3,16 @@ import {
   StyleSheet,
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Animated,
-  Dimensions,
+  Platform,
   ScrollView,
-  SafeAreaView,
   StatusBar,
-  Alert,
+  useWindowDimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ONBOARDING_DATA } from "../constants/recommendations";
 import {
   ExchangeIcon,
@@ -20,23 +21,26 @@ import {
   GlobeIcon,
   BellIcon,
 } from "./Icons";
+import { Theme } from "../theme/colors";
+import { ResolvedTheme } from "../types";
+import { spacing, radius } from "../theme/tokens";
 
 interface OnboardingProps {
   onComplete: () => void;
-  theme: {
-    background: string;
-    surface: string;
-    textPrimary: string;
-    textSecondary: string;
-    accent: string;
-    accentSoft: string;
-  };
+  theme: Theme;
+  resolvedTheme: ResolvedTheme;
 }
 
-const { width } = Dimensions.get("window");
+const useNativeDriver = Platform.OS !== "web";
 
-export default function Onboarding({ onComplete, theme }: OnboardingProps) {
+export default function Onboarding({
+  onComplete,
+  theme,
+  resolvedTheme,
+}: OnboardingProps) {
+  const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [nombreInput, setNombreInput] = useState("");
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -46,15 +50,17 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
     ]).start();
   }, [currentIndex]);
+
+  const isLast = currentIndex === ONBOARDING_DATA.length - 1;
 
   const handleNext = () => {
     if (currentIndex < ONBOARDING_DATA.length - 1) {
@@ -75,35 +81,15 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
   const handleComplete = async () => {
     await AsyncStorage.setItem("onboarding_completed", "true");
 
-    // Pedir nombre mediante alerta
-    const userName = await AsyncStorage.getItem("user_name");
-    if (!userName) {
-      Alert.prompt(
-        "¡Bienvenido a Arco!",
-        "¿Cómo te gustaría que te llamemos?",
-        [
-          {
-            text: "Cancelar",
-            style: "cancel",
-          },
-          {
-            text: "Guardar",
-            onPress: async (name?: string) => {
-              if (name && name.trim().length >= 2) {
-                await AsyncStorage.setItem("user_name", name.trim());
-                onComplete();
-              } else {
-                onComplete();
-              }
-            },
-          },
-        ],
-        "plain-text",
-        ""
-      );
-    } else {
-      onComplete();
+    const name = nombreInput.trim();
+    if (name.length >= 2) {
+      try {
+        await AsyncStorage.setItem("user_name", name);
+      } catch (e) {
+        console.log(e);
+      }
     }
+    onComplete();
   };
 
   const handleDotPress = (index: number) => {
@@ -114,17 +100,17 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
       case "exchange":
-        return <ExchangeIcon size={64} color={theme.accent} />;
+        return <ExchangeIcon size={40} color={theme.accent} />;
       case "chart":
-        return <TrendIcon size={64} color={theme.accent} />;
+        return <TrendIcon size={40} color={theme.accent} />;
       case "scale":
-        return <ScaleIcon size={64} color={theme.accent} />;
+        return <ScaleIcon size={40} color={theme.accent} />;
       case "globe":
-        return <GlobeIcon size={64} color={theme.accent} />;
+        return <GlobeIcon size={40} color={theme.accent} />;
       case "bell":
-        return <BellIcon size={64} color={theme.accent} />;
+        return <BellIcon size={40} color={theme.accent} />;
       default:
-        return <ExchangeIcon size={56} color={theme.accent} />;
+        return <ExchangeIcon size={40} color={theme.accent} />;
     }
   };
 
@@ -132,10 +118,14 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"} />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
+        <TouchableOpacity
+          onPress={handleSkip}
+          style={styles.skipButton}
+          accessibilityRole="button"
+        >
           <Text style={[styles.skipText, { color: theme.textSecondary }]}>
             Saltar
           </Text>
@@ -147,13 +137,14 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         onMomentumScrollEnd={(e) => {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setCurrentIndex(index);
         }}
         style={styles.scrollView}
       >
-        {ONBOARDING_DATA.map((item, _index) => (
+        {ONBOARDING_DATA.map((item, index) => (
           <View key={item.id} style={[styles.slide, { width }]}>
             <Animated.View
               style={{
@@ -178,6 +169,28 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
               >
                 {item.description}
               </Text>
+
+              {index === ONBOARDING_DATA.length - 1 ? (
+                <TextInput
+                  style={[
+                    styles.nameInput,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      borderColor: theme.border,
+                      color: theme.textPrimary,
+                    },
+                  ]}
+                  value={nombreInput}
+                  onChangeText={setNombreInput}
+                  placeholder="Tu nombre (opcional)"
+                  placeholderTextColor={theme.textMuted}
+                  maxLength={20}
+                  autoCapitalize="words"
+                  returnKeyType="done"
+                  onSubmitEditing={handleComplete}
+                  accessibilityLabel="Tu nombre"
+                />
+              ) : null}
             </Animated.View>
           </View>
         ))}
@@ -191,6 +204,7 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
               onPress={() => handleDotPress(index)}
               style={[
                 styles.dot,
+                { backgroundColor: theme.textMuted },
                 index === currentIndex && { backgroundColor: theme.accent },
                 index === currentIndex && styles.activeDot,
               ]}
@@ -202,12 +216,11 @@ export default function Onboarding({ onComplete, theme }: OnboardingProps) {
         <TouchableOpacity
           style={[styles.nextButton, { backgroundColor: theme.accent }]}
           onPress={handleNext}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
+          accessibilityRole="button"
         >
-          <Text style={styles.nextButtonText}>
-            {currentIndex === ONBOARDING_DATA.length - 1
-              ? 'Empezar'
-              : "Siguiente"}
+          <Text style={[styles.nextButtonText, { color: theme.onAccent }]}>
+            {isLast ? "Empezar" : "Siguiente"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -222,15 +235,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.lg,
   },
   skipButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   skipText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
   },
   scrollView: {
@@ -240,60 +253,68 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: 36,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 96,
+    height: 96,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 32,
-  },
-  icon: {
-    fontSize: 56,
+    marginBottom: 36,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 16,
+    letterSpacing: -0.5,
+    marginBottom: 14,
   },
   description: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
-    lineHeight: 24,
-    paddingHorizontal: 16,
+    lineHeight: 23,
+    paddingHorizontal: 8,
+  },
+  nameInput: {
+    alignSelf: "stretch",
+    marginTop: spacing.xxl,
+    height: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
+    fontSize: 16,
+    fontWeight: "600",
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    paddingTop: 16,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: 28,
+    paddingTop: spacing.md,
   },
   dotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 24,
-    gap: 8,
+    marginBottom: 22,
+    gap: spacing.sm,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
-    backgroundColor: "#CBD5E1",
+    opacity: 0.5,
   },
   activeDot: {
-    width: 24,
+    width: 22,
+    opacity: 1,
   },
   nextButton: {
     height: 56,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     justifyContent: "center",
     alignItems: "center",
   },
   nextButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 });

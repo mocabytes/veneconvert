@@ -1,31 +1,33 @@
 import React from "react";
 import {
   StyleSheet,
-  Text,
   View,
-  TextInput,
+  Text,
+  TouchableOpacity,
   Animated,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { Theme } from "../theme/colors";
+import ScreenHeader from "./ui/ScreenHeader";
+import ClearButton from "./ui/ClearButton";
+import AmountInput from "./ui/AmountInput";
+import { CopyIcon } from "./Icons";
+import { triggerHapticForAction } from "../utils/haptic";
+import { spacing, radius } from "../theme/tokens";
 
 interface ConverterTabProps {
   bs: string;
   usdBcv: string;
   usdtBinance: string;
+  tasas: { bcv: number; binanceBuy: number; binanceSell: number };
   onBsChange: (value: string) => void;
+  onBsEnd: () => void;
   onBcvChange: (value: string) => void;
+  onBcvEnd: () => void;
   onBinanceChange: (value: string) => void;
-  theme: {
-    accent: string;
-    surface: string;
-    border: string;
-    successBorder: string;
-    successBg: string;
-    warningBorder: string;
-    warningBg: string;
-    textPrimary: string;
-    textSecondary: string;
-    textMuted: string;
-  };
+  onBinanceEnd: () => void;
+  onClear: () => void;
+  theme: Theme;
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
 }
@@ -34,13 +36,40 @@ export default function ConverterTab({
   bs,
   usdBcv,
   usdtBinance,
+  tasas,
   onBsChange,
+  onBsEnd,
   onBcvChange,
+  onBcvEnd,
   onBinanceChange,
+  onBinanceEnd,
+  onClear,
   theme,
   fadeAnim,
   slideAnim,
 }: ConverterTabProps) {
+  const copiar = async (value: string, label: string) => {
+    if (!value || parseFloat(value) <= 0) {
+      return;
+    }
+    triggerHapticForAction("button");
+    await Clipboard.setStringAsync(
+      `${label}: ${value} (Arco)`
+    );
+  };
+
+  const renderCopySlot = (value: string, label: string) => (
+    <TouchableOpacity
+      style={[styles.copyButton, { backgroundColor: theme.accentSoft }]}
+      onPress={() => copiar(value, label)}
+      disabled={!value || parseFloat(value) <= 0}
+      accessibilityLabel={`Copiar ${label}`}
+      accessibilityRole="button"
+    >
+      <CopyIcon size={18} color={theme.accent} />
+    </TouchableOpacity>
+  );
+
   return (
     <Animated.View
       style={{
@@ -48,108 +77,68 @@ export default function ConverterTab({
         transform: [{ translateY: slideAnim }],
       }}
     >
-      <View style={styles.flatContainer}>
-        <Text
-          style={[
-            styles.cardLabel,
-            { color: theme.accent, marginBottom: 2 },
-          ]}
-        >
-          Modo conversor
-        </Text>
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.textPrimary, marginBottom: 24 },
-          ]}
-        >
-          Conversor rápido
-        </Text>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Conversor"
+          subtitle="Escribe en cualquier campo y las demás monedas se actualizan al instante."
+          theme={theme}
+          right={<ClearButton onPress={onClear} theme={theme} />}
+        />
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>
-            Bolívares (VES)
-          </Text>
-          <View
-            style={[
-              styles.flatInputWrapper,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.surface,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.currencyPrefix, { color: theme.textMuted }]}
-            >
-              Bs.
+        <AmountInput
+          label="Bolívares (VES)"
+          prefix="Bs."
+          value={bs}
+          onChangeText={onBsChange}
+          onEndEditing={onBsEnd}
+          rightSlot={renderCopySlot(bs, "VES")}
+          theme={theme}
+        />
+
+        <AmountInput
+          label="Dólares (tasa BCV)"
+          prefix="$"
+          value={usdBcv}
+          onChangeText={onBcvChange}
+          onEndEditing={onBcvEnd}
+          rightSlot={renderCopySlot(usdBcv, "USD BCV")}
+          theme={theme}
+        />
+
+        <AmountInput
+          label="USDT (Binance venta)"
+          prefix="₮"
+          value={usdtBinance}
+          onChangeText={onBinanceChange}
+          onEndEditing={onBinanceEnd}
+          rightSlot={renderCopySlot(usdtBinance, "USDT")}
+          theme={theme}
+        />
+
+        <View style={styles.ratesStrip}>
+          <View style={styles.rateItem}>
+            <Text style={[styles.rateKey, { color: theme.textMuted }]}>
+              BCV
             </Text>
-            <TextInput
-              style={[styles.input, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              value={bs}
-              onChangeText={onBsChange}
-              placeholder="0.00"
-              placeholderTextColor={theme.textMuted}
-            />
+            <Text style={[styles.rateValue, { color: theme.textPrimary }]}>
+              {tasas.bcv.toFixed(2)}
+            </Text>
           </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>
-            Dólares (Tasa BCV)
-          </Text>
-          <View
-            style={[
-              styles.flatInputWrapper,
-              {
-                borderColor: theme.successBorder,
-                backgroundColor: theme.successBg,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.currencyPrefix, { color: theme.textMuted }]}
-            >
-              $
+          <View style={styles.rateItem}>
+            <Text style={[styles.rateKey, { color: theme.textMuted }]}>
+              P2P compra
             </Text>
-            <TextInput
-              style={[styles.input, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              value={usdBcv}
-              onChangeText={onBcvChange}
-              placeholder="0.00"
-              placeholderTextColor={theme.textMuted}
-            />
+            <Text style={[styles.rateValue, { color: theme.textPrimary }]}>
+              {tasas.binanceBuy.toFixed(2)}
+            </Text>
           </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>
-            USDT (Tasa Binance Venta)
-          </Text>
-          <View
-            style={[
-              styles.flatInputWrapper,
-              {
-                borderColor: theme.warningBorder,
-                backgroundColor: theme.warningBg,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.currencyPrefix, { color: theme.textMuted }]}
-            >
-              ₮
+          <View style={styles.rateItem}>
+            <Text style={[styles.rateKey, { color: theme.textMuted }]}>
+              P2P venta
             </Text>
-            <TextInput
-              style={[styles.input, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              value={usdtBinance}
-              onChangeText={onBinanceChange}
-              placeholder="0.00"
-              placeholderTextColor={theme.textMuted}
-            />
+            <Text style={[styles.rateValue, { color: theme.textPrimary }]}>
+              {tasas.binanceSell.toFixed(2)}
+            </Text>
           </View>
         </View>
       </View>
@@ -158,44 +147,41 @@ export default function ConverterTab({
 }
 
 const styles = StyleSheet.create({
-  flatContainer: {
-    padding: 20,
+  container: {
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    width: "100%",
   },
-  cardLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  flatInputWrapper: {
-    flexDirection: "row",
+  copyButton: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
   },
-  currencyPrefix: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginRight: 8,
+  ratesStrip: {
+    flexDirection: "row",
+    gap: spacing.sm,
   },
-  input: {
+  rateItem: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: "transparent",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    alignItems: "center",
+  },
+  rateKey: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  rateValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
 });

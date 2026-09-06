@@ -3,28 +3,25 @@ import {
   TouchableOpacity,
   Animated,
   StyleSheet,
+  StyleProp,
   ViewStyle,
-  TextStyle,
+  Platform,
 } from "react-native";
+
+const useNativeDriver = Platform.OS !== "web";
 
 interface AnimatedButtonProps {
   children: React.ReactNode;
   onPress: () => void;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
   disabled?: boolean;
-  hapticType?: "light" | "medium" | "heavy" | "success" | "warning" | "error";
 }
 
 export default function AnimatedButton({
   children,
   onPress,
   style,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  textStyle,
   disabled = false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  hapticType = "light",
 }: AnimatedButtonProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
@@ -34,12 +31,12 @@ export default function AnimatedButton({
       Animated.timing(scaleAnim, {
         toValue: 0.95,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0.8,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
     ]).start();
   };
@@ -48,13 +45,13 @@ export default function AnimatedButton({
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        useNativeDriver: true,
+        useNativeDriver,
         tension: 40,
         friction: 3,
       }),
       Animated.spring(opacityAnim, {
         toValue: 1,
-        useNativeDriver: true,
+        useNativeDriver,
         tension: 40,
         friction: 3,
       }),

@@ -1,6 +1,5 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
-import { Icon } from '@iconify/react';
+import Svg, { Path, Circle, Rect, Defs, ClipPath, G } from 'react-native-svg';
 
 interface IconProps {
   size?: number;
@@ -528,45 +527,129 @@ export const StarIcon: React.FC<IconProps> = ({
   </Svg>
 );
 
-// Circle Flags - Banderas de países usando @iconify/react
-export const FlagVE: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:ve" width={size} height={size} />
+// Circle Flags - Banderas de países con react-native-svg
+interface FlagProps extends IconProps {
+  bg: string;
+  children?: React.ReactNode;
+}
+
+const FlagBase: React.FC<FlagProps> = ({ size = 24, color, bg, children }) => {
+  const clipId = React.useId().replace(/[^a-zA-Z0-9]/g, '');
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <ClipPath id={clipId}>
+          <Circle cx="12" cy="12" r="11.5" />
+        </ClipPath>
+      </Defs>
+      <Circle cx="12" cy="12" r="11.5" fill={bg} />
+      <G clipPath={`url(#${clipId})`}>{children}</G>
+      <Circle
+        cx="12"
+        cy="12"
+        r="11.5"
+        stroke={color || "rgba(255,255,255,0.3)"}
+        strokeWidth="1"
+      />
+    </Svg>
+  );
+};
+
+export const FlagVE: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#FFCC00">
+    <Rect x="0" y="9" width="24" height="4.5" fill="#003DA5" />
+    <Rect x="0" y="13.5" width="24" height="10.5" fill="#CF142B" />
+    <Circle cx="9" cy="11.2" r="0.8" fill="#FFFFFF" />
+    <Circle cx="12" cy="11.2" r="0.8" fill="#FFFFFF" />
+    <Circle cx="15" cy="11.2" r="0.8" fill="#FFFFFF" />
+  </FlagBase>
 );
 
-export const FlagUS: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:us" width={size} height={size} />
+export const FlagUS: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#FFFFFF">
+    <Rect x="0" y="7" width="24" height="2.4" fill="#B22234" />
+    <Rect x="0" y="12" width="24" height="2.4" fill="#B22234" />
+    <Rect x="0" y="17" width="24" height="2.4" fill="#B22234" />
+    <Rect x="0" y="22" width="24" height="2" fill="#B22234" />
+    <Rect x="0" y="0" width="11.5" height="7" fill="#3C3B6E" />
+    <Circle cx="3" cy="3.5" r="0.7" fill="#FFFFFF" />
+    <Circle cx="6" cy="3.5" r="0.7" fill="#FFFFFF" />
+    <Circle cx="9" cy="3.5" r="0.7" fill="#FFFFFF" />
+  </FlagBase>
 );
 
-export const FlagEU: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:eu" width={size} height={size} />
+export const FlagEU: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#003399">
+    <Circle cx="16.5" cy="12" r="1" fill="#FFCC00" />
+    <Circle cx="14.25" cy="15.9" r="1" fill="#FFCC00" />
+    <Circle cx="9.75" cy="15.9" r="1" fill="#FFCC00" />
+    <Circle cx="7.5" cy="12" r="1" fill="#FFCC00" />
+    <Circle cx="9.75" cy="8.1" r="1" fill="#FFCC00" />
+    <Circle cx="14.25" cy="8.1" r="1" fill="#FFCC00" />
+  </FlagBase>
 );
 
-export const FlagCO: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:co" width={size} height={size} />
+export const FlagCO: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#FCD116">
+    <Rect x="0" y="12" width="24" height="4.5" fill="#003893" />
+    <Rect x="0" y="16.5" width="24" height="7.5" fill="#CE1126" />
+  </FlagBase>
 );
 
-export const FlagPE: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:pe" width={size} height={size} />
+export const FlagPE: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#D91023">
+    <Rect x="8" y="0" width="8" height="24" fill="#FFFFFF" />
+  </FlagBase>
 );
 
-export const FlagBR: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:br" width={size} height={size} />
+export const FlagBR: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#009739">
+    <Path
+      d="M12 4L20.5 12L12 20L3.5 12L12 4Z"
+      fill="#FEDD00"
+    />
+    <Circle cx="12" cy="12" r="4.5" fill="#002776" />
+    <Rect x="9" y="11.2" width="6" height="1.6" fill="#FFFFFF" />
+  </FlagBase>
 );
 
-export const FlagMX: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:mx" width={size} height={size} />
+export const FlagMX: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#006847">
+    <Rect x="8" y="0" width="8" height="24" fill="#FFFFFF" />
+    <Rect x="16" y="0" width="8" height="24" fill="#CE1126" />
+  </FlagBase>
 );
 
-export const FlagCR: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:cr" width={size} height={size} />
+export const FlagCR: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#002B7F">
+    <Rect x="0" y="6" width="24" height="3" fill="#FFFFFF" />
+    <Rect x="0" y="9" width="24" height="6" fill="#CE1126" />
+    <Rect x="0" y="15" width="24" height="3" fill="#FFFFFF" />
+  </FlagBase>
 );
 
-export const FlagCA: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:ca" width={size} height={size} />
+export const FlagCA: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#FFFFFF">
+    <Rect x="0" y="0" width="5" height="24" fill="#D80621" />
+    <Rect x="19" y="0" width="5" height="24" fill="#D80621" />
+    <Path
+      d="M12 6L13.2 9.2L16.4 9.4L14 11.4L15 14.6L12 12.8L9 14.6L10 11.4L7.6 9.4L10.8 9.2L12 6Z"
+      fill="#D80621"
+    />
+  </FlagBase>
 );
 
-export const FlagAU: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="circle-flags:au" width={size} height={size} />
+export const FlagAU: React.FC<IconProps> = ({ size = 24, color }) => (
+  <FlagBase size={size} color={color} bg="#012169">
+    <Rect x="10.8" y="2" width="2.4" height="20" fill="#FFFFFF" />
+    <Rect x="2" y="10.8" width="20" height="2.4" fill="#FFFFFF" />
+    <Rect x="10.8" y="2" width="2.4" height="20" fill="#E4002B" />
+    <Rect x="2" y="10.8" width="20" height="2.4" fill="#E4002B" />
+    <Circle cx="4.5" cy="4.5" r="1.1" fill="#FFFFFF" />
+    <Circle cx="19" cy="4.5" r="1.1" fill="#FFFFFF" />
+    <Circle cx="19" cy="19.5" r="1.1" fill="#FFFFFF" />
+    <Circle cx="4.5" cy="19.5" r="1.1" fill="#FFFFFF" />
+  </FlagBase>
 );
 
 // Helper function to get flag component by code
@@ -589,17 +672,56 @@ export const getFlagIcon = (flagCode: string, size: number = 24) => {
   return <FlagComponent size={size} />;
 };
 
-// Cryptocurrency Color - Criptomonedas coloridas usando @iconify/react
-export const CryptoUSDT: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="cryptocurrency-color:usdt" width={size} height={size} />
+// Cryptocurrency - Criptomonedas con react-native-svg
+export const CryptoUSDT: React.FC<IconProps> = ({ size = 24, color }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="11.5" fill="#26A17B" />
+    <Circle
+      cx="12"
+      cy="12"
+      r="11.5"
+      stroke={color || "rgba(255,255,255,0.3)"}
+      strokeWidth="1"
+    />
+    <Rect x="7" y="4.8" width="10" height="2.8" fill="#FFFFFF" />
+    <Rect x="10.4" y="7.6" width="3.2" height="11.6" fill="#FFFFFF" />
+  </Svg>
 );
 
-export const CryptoBTC: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="cryptocurrency-color:btc" width={size} height={size} />
+export const CryptoBTC: React.FC<IconProps> = ({ size = 24, color }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="11.5" fill="#F7931A" />
+    <Circle
+      cx="12"
+      cy="12"
+      r="11.5"
+      stroke={color || "rgba(255,255,255,0.3)"}
+      strokeWidth="1"
+    />
+    <Rect x="10.6" y="3.8" width="2.9" height="16.4" fill="#FFFFFF" />
+    <Rect x="6.8" y="5.6" width="8.6" height="3.1" fill="#FFFFFF" />
+    <Rect x="6.8" y="15.3" width="8.6" height="3.1" fill="#FFFFFF" />
+    <Rect x="8.8" y="9.6" width="3.4" height="2.4" fill="#FFFFFF" />
+    <Rect x="8.8" y="12" width="3.4" height="2.4" fill="#FFFFFF" />
+  </Svg>
 );
 
-export const CryptoETH: React.FC<IconProps> = ({ size = 24 }) => (
-  <Icon icon="cryptocurrency-color:eth" width={size} height={size} />
+export const CryptoETH: React.FC<IconProps> = ({ size = 24, color }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="11.5" fill="#627EEA" />
+    <Circle
+      cx="12"
+      cy="12"
+      r="11.5"
+      stroke={color || "rgba(255,255,255,0.3)"}
+      strokeWidth="1"
+    />
+    <Path d="M12 4L17.5 12L12 20L6.5 12L12 4Z" fill="#FFFFFF" />
+    <Path
+      d="M12 7.5L10 11L14 11L12 7.5ZM10 12.6L12 16.5L14 12.6L10 12.6Z"
+      fill="#627EEA"
+    />
+  </Svg>
 );
 
 export const ChevronDownIcon: React.FC<IconProps> = ({
@@ -609,6 +731,21 @@ export const ChevronDownIcon: React.FC<IconProps> = ({
   <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
     <Path
       d="M5 8L10 13L15 8"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ChevronRightIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M8 5L13 10L8 15"
       stroke={color}
       strokeWidth="2"
       strokeLinecap="round"
@@ -642,6 +779,364 @@ export const SystemIcon: React.FC<IconProps> = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const CopyIcon: React.FC<IconProps> = ({
+  size = 18,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M7 4.5H15C16.1046 4.5 17 5.39543 17 6.5V14C17 15.1046 16.1046 16 15 16H7C5.89543 16 5 15.1046 5 14V6.5C5 5.39543 5.89543 4.5 7 4.5Z"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M11 16.5V17C11 18.1046 11.8954 19 13 19H17C18.1046 19 19 18.1046 19 17V10.5C19 9.39543 18.1046 8.5 17 8.5H16"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const WifiOffIcon: React.FC<IconProps> = ({  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M2.5 2.5L17.5 17.5"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M5.5 8.5C6.5 7.5 7.7 6.8 9 6.4M14.5 8.5C13.8 7.8 13 7.3 12.1 6.9"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M10 12.5C10.4 12.5 10.7 12.6 11 12.8M13.7 10.7C13.1 10.2 12.6 9.9 12 9.7"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M3.5 12C4.7 10.8 6.1 10 7.6 9.5M15.5 10.8C14.9 11.3 14.2 11.7 13.4 12"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M7.8 15.2L10 17L12.2 15.2"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const CloseIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M5 5L15 15M15 5L5 15"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const PlusIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M10 4V16M4 10H16"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ShareIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M11 5L10.5 4.5C9.8 3.9 8.7 4.4 8.7 5.3V6.6M11 5L12.5 6.5C13.2 7.2 14.4 7.2 15.1 6.5C15.8 5.8 15.8 4.6 15.1 3.9C14.4 3.2 13.2 3.2 12.5 3.9M11 5V8M8.7 6.6C6.8 7 5.5 8.5 5.5 10.5V12.5C5.5 13.6 6.4 14.5 7.5 14.5H8M8.7 6.6C8.4 7.2 8.2 7.8 8.1 8.5C7.9 9.5 8.6 10.5 9.6 10.6C10.3 10.7 11 10.4 11.5 9.8C11.9 9.3 12.2 8.8 12.3 8.2M15 12C15 13.1 14.1 14 13 14H11.5C10.9 14 10.3 14.3 10 14.8L9.5 15.5"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const GridIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M4 4H8V8H4V4ZM4 12H8V16H4V12ZM12 4H16V8H12V4ZM12 12H16V16H12V12Z"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ArrowUpIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M5 13L10 8L15 13"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ArrowDownIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M5 7L10 12L15 7"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ArrowRightIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M4 10H16M16 10L11 5M16 10L11 15"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const CheckIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M4 10.5L8 14.5L16 5.5"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const RefreshIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M17 5V9H13M3 15V11H7M16.5 9C16 6.5 14.1 4.5 11.6 3.9C10.9 3.8 10.2 3.8 9.5 3.9M3.5 11C4 13.5 5.9 15.5 8.4 16.1C9.1 16.2 9.8 16.2 10.5 16.1"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const WalletIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M3 6C3 4.89543 3.89543 4 5 4H15C16.1046 4 17 4.89543 17 6V15C17 16.1046 16.1046 17 15 17H5C3.89543 17 3 16.1046 3 15V6Z"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M3 8H17M7 12H11"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const BankIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M2 18H18M3 9H17M3 14H17M3 9L4 6H16L17 9M3 9V14M17 9V14M10 6V14"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ZapIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M11 2L4 11H9L8 18L16 8H10.5L11 2Z"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const PercentIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M5 15L15 5"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M6.5 7C7.32843 7 8 6.32843 8 5.5C8 4.67157 7.32843 4 6.5 4C5.67157 4 5 4.67157 5 5.5C5 6.32843 5.67157 7 6.5 7Z"
+      stroke={color}
+      strokeWidth="1.8"
+    />
+    <Path
+      d="M13.5 16C14.3284 16 15 15.3284 15 14.5C15 13.6716 14.3284 13 13.5 13C12.6716 13 12 13.6716 12 14.5C12 15.3284 12.6716 16 13.5 16Z"
+      stroke={color}
+      strokeWidth="1.8"
+    />
+  </Svg>
+);
+
+export const TrendingUpIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M2 14L7 9L10 12L18 4"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M13 4H18V9"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const TrendingDownIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M2 6L7 11L10 8L18 16"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M13 16H18V11"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const SwapVerticalIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M6 2V16M6 16L3 13M6 16L9 13M14 18V4M14 4L11 7M14 4L17 7"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const TargetIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M10 17C13.866 17 17 13.866 17 10C17 6.13401 13.866 3 10 3C6.13401 3 3 6.13401 3 10C3 13.866 6.13401 17 10 17Z"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M10 13.5C11.933 13.5 13.5 11.933 13.5 10C13.5 8.067 11.933 6.5 10 6.5C8.067 6.5 6.5 8.067 6.5 10C6.5 11.933 8.067 13.5 10 13.5Z"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M10 4V3M10 17V16M4 10H3M17 10H16"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
     />
   </Svg>
 );

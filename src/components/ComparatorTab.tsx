@@ -3,13 +3,20 @@ import {
   StyleSheet,
   Text,
   View,
-  TextInput,
-  TouchableOpacity,
   Animated,
-  Platform,
 } from "react-native";
 import { FireIcon, TrophyIcon } from "./Icons";
-import { analizarCompra, MonedaUsuario } from "../utils/calculations";
+import {
+  MonedaUsuario,
+  ResultadoAnalisis,
+} from "../utils/calculations";
+import { Theme } from "../theme/colors";
+import { spacing, radius } from "../theme/tokens";
+import ScreenHeader from "./ui/ScreenHeader";
+import ClearButton from "./ui/ClearButton";
+import AmountInput from "./ui/AmountInput";
+import PrimaryButton from "./ui/PrimaryButton";
+import SegmentedControl from "./ui/SegmentedControl";
 
 interface ComparatorTabProps {
   monedaOrigen: MonedaUsuario;
@@ -17,24 +24,15 @@ interface ComparatorTabProps {
   compPrecioUsdBcv: string;
   compPrecioDivisa: string;
   mostrarDiagnostico: boolean;
-  resultadoComparador: ReturnType<typeof analizarCompra> | null;
+  resultadoComparador: ResultadoAnalisis | null;
+  tasas: { bcv: number; binanceBuy: number; binanceSell: number };
   onMonedaOrigenChange: (value: MonedaUsuario) => void;
   onCompPrecioBsChange: (value: string) => void;
   onCompPrecioUsdBcvChange: (value: string) => void;
   onCompPrecioDivisaChange: (value: string) => void;
   onEjecutarAnalisis: () => void;
-  theme: {
-    accent: string;
-    success: string;
-    surfaceAlt: string;
-    surface: string;
-    border: string;
-    successBorder: string;
-    successBg: string;
-    textPrimary: string;
-    textSecondary: string;
-    textMuted: string;
-  };
+  onClear: () => void;
+  theme: Theme;
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
 }
@@ -46,24 +44,47 @@ export default function ComparatorTab({
   compPrecioDivisa,
   mostrarDiagnostico,
   resultadoComparador,
+  tasas,
   onMonedaOrigenChange,
   onCompPrecioBsChange,
   onCompPrecioUsdBcvChange,
   onCompPrecioDivisaChange,
   onEjecutarAnalisis,
+  onClear,
   theme,
   fadeAnim,
   slideAnim,
 }: ComparatorTabProps) {
-  const obtenerColorCard = (rec: string) => {
+  const obtenerTonoCard = (rec: string): "success" | "accent" | "neutral" => {
     if (rec.includes("DIRECTO")) {
-      return theme.success;
+      return "success";
     }
     if (rec.includes("CAMBIAR")) {
-      return theme.accent;
+      return "accent";
     }
-    return theme.textSecondary;
+    return "neutral";
   };
+
+  const tono = resultadoComparador
+    ? obtenerTonoCard(resultadoComparador.recomendacion)
+    : "neutral";
+
+  const tonoColor =
+    tono === "success"
+      ? theme.success
+      : tono === "accent"
+      ? theme.accent
+      : theme.textSecondary;
+
+  const tonoBg =
+    tono === "success"
+      ? theme.successBg
+      : tono === "accent"
+      ? theme.accentSoft
+      : theme.surfaceAlt;
+
+  const tonoBorder =
+    tono === "success" ? theme.successBorder : theme.border;
 
   return (
     <Animated.View
@@ -72,174 +93,59 @@ export default function ComparatorTab({
         transform: [{ translateY: slideAnim }],
       }}
     >
-      <View style={styles.flatContainer}>
-        <Text
-          style={[
-            styles.cardLabel,
-            { color: theme.accent, marginBottom: 2 },
-          ]}
-        >
-          Modo comparador
-        </Text>
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.textPrimary, marginBottom: 16 },
-          ]}
-        >
-          ¿Cuál opción sale mejor?
-        </Text>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Comparador"
+          subtitle="Compara precios en bolívares, dólares y USDT para pagar lo mínimo."
+          theme={theme}
+          right={<ClearButton onPress={onClear} theme={theme} />}
+        />
 
         <Text style={[styles.label, { color: theme.textSecondary }]}>
           ¿Qué dinero tienes disponible?
         </Text>
-        <View
-          style={[
-            styles.toggleContainer,
-            { backgroundColor: theme.surfaceAlt },
+        <SegmentedControl<MonedaUsuario>
+          theme={theme}
+          value={monedaOrigen}
+          onChange={onMonedaOrigenChange}
+          style={styles.segment}
+          options={[
+            { label: "Tengo Bs.", value: "VES" },
+            { label: "Tengo $ / Cripto", value: "USD", activeColor: theme.success },
           ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              monedaOrigen === "VES" && { backgroundColor: theme.accent },
-            ]}
-            onPress={() => {
-              onMonedaOrigenChange("VES");
-            }}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                monedaOrigen === "VES" && styles.toggleTextActive,
-              ]}
-            >
-              Tengo Bolívares
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              monedaOrigen === "USD" && {
-                backgroundColor: theme.success,
-              },
-            ]}
-            onPress={() => {
-              onMonedaOrigenChange("USD");
-            }}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                monedaOrigen === "USD" && styles.toggleTextActive,
-              ]}
-            >
-              Tengo Dólares/Cripto
-            </Text>
-          </TouchableOpacity>
-        </View>
+        />
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>
-            Precio fijado en Dólares Oficiales ($ BCV)
-          </Text>
-          <View
-            style={[
-              styles.flatInputWrapper,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.surface,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.currencyPrefix, { color: theme.textMuted }]}
-            >
-              $ BCV
-            </Text>
-            <TextInput
-              style={[styles.input, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              autoFocus={Platform.OS !== "web"}
-              value={compPrecioUsdBcv}
-              onChangeText={onCompPrecioUsdBcvChange}
-              placeholder="0.00"
-              placeholderTextColor={theme.textMuted}
-            />
-          </View>
-        </View>
+        <AmountInput
+          label="Precio fijado en dólares oficiales ($ BCV)"
+          prefix="$ BCV"
+          value={compPrecioUsdBcv}
+          onChangeText={onCompPrecioUsdBcvChange}
+          theme={theme}
+        />
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>
-            Precio total en etiqueta o punto (VES)
-          </Text>
-          <View
-            style={[
-              styles.flatInputWrapper,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.surface,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.currencyPrefix, { color: theme.textMuted }]}
-            >
-              Bs.
-            </Text>
-            <TextInput
-              style={[styles.input, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              value={compPrecioBs}
-              onChangeText={onCompPrecioBsChange}
-              placeholder="0.00"
-              placeholderTextColor={theme.textMuted}
-            />
-          </View>
-        </View>
+        <AmountInput
+          label="Precio total en etiqueta o punto (VES)"
+          prefix="Bs."
+          value={compPrecioBs}
+          onChangeText={onCompPrecioBsChange}
+          theme={theme}
+        />
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>
-            Precio en divisas ($ efectivo / USDT Binance)
-          </Text>
-          <View
-            style={[
-              styles.flatInputWrapper,
-              {
-                borderColor: theme.successBorder,
-                backgroundColor: theme.successBg,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.currencyPrefix, { color: theme.textMuted }]}
-            >
-              $
-            </Text>
-            <TextInput
-              style={[styles.input, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              value={compPrecioDivisa}
-              onChangeText={onCompPrecioDivisaChange}
-              placeholder="0.00"
-              placeholderTextColor={theme.textMuted}
-            />
-          </View>
-        </View>
+        <AmountInput
+          label="Precio en divisas ($ efectivo / USDT Binance)"
+          prefix="$"
+          value={compPrecioDivisa}
+          onChangeText={onCompPrecioDivisaChange}
+          theme={theme}
+        />
 
         {compPrecioBs !== "" && compPrecioDivisa !== "" ? (
-          <TouchableOpacity
-            style={[
-              styles.calculateButton,
-              { backgroundColor: theme.accent },
-            ]}
+          <PrimaryButton
+            title="Calcular la mejor opción"
             onPress={onEjecutarAnalisis}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.calculateButtonText}>
-              Calcular Opción Más Barata ✨
-            </Text>
-          </TouchableOpacity>
+            theme={theme}
+            style={styles.calculate}
+          />
         ) : null}
 
         {mostrarDiagnostico && resultadoComparador ? (
@@ -247,228 +153,259 @@ export default function ComparatorTab({
             style={[
               styles.diagnosisCard,
               {
-                backgroundColor: obtenerColorCard(
-                  resultadoComparador.recomendacion
-                ),
+                backgroundColor: tonoBg,
+                borderColor: tonoBorder,
               },
             ]}
           >
-            <Text style={styles.diagnosisTitle}>
-              RECOMENDACIÓN DE PAGO
-            </Text>
-            <Text style={styles.diagnosisText}>
-              {resultadoComparador.mensaje}
-            </Text>
-            {resultadoComparador.ahorroEstimado > 0 ? (
-              <View style={styles.diagnosisAhorroContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <FireIcon size={24} color={theme.accent} />
-                  <Text style={styles.diagnosisAhorro}>
-                    Ahorras:{" "}
-                    {resultadoComparador.monedaAhorro === "VES"
-                      ? "Bs. "
-                      : "$ "}
-                    {resultadoComparador.ahorroEstimado.toLocaleString(
-                      "es-VE",
-                      { minimumFractionDigits: 2 }
-                    )}
-                  </Text>
-                </View>
+            <View style={styles.diagnosisHeader}>
+              <View style={[styles.diagnosisBadge, { backgroundColor: tonoColor }]}>
+                {resultadoComparador.ahorroEstimado > 0 ? (
+                  <TrophyIcon size={18} color={theme.onAccent} />
+                ) : (
+                  <FireIcon size={18} color={theme.onAccent} />
+                )}
               </View>
-            ) : null}
-            <View style={styles.separator} />
-            <Text style={styles.desgloseTitle}>
-              Comparativa de costos:
-            </Text>
-            {resultadoComparador.desgloseOpciones.map((opcion, index) => (
-              <View
-                key={index}
+              <Text
                 style={[
-                  styles.desgloseRow,
-                  index === 0 && styles.desgloseRowGanador,
+                  styles.diagnosisTitle,
+                  { color: tono === "neutral" ? theme.textMuted : tonoColor },
                 ]}
               >
-                <Text
+                Recomendación de pago
+              </Text>
+            </View>
+            <Text style={[styles.diagnosisText, { color: theme.textPrimary }]}>
+              {resultadoComparador.mensaje}
+            </Text>
+
+            {resultadoComparador.ahorroEstimado > 0 ? (
+              <Text style={[styles.diagnosisAhorro, { color: tonoColor }]}>
+                Ahorras{" "}
+                {resultadoComparador.monedaAhorro === "VES" ? "Bs. " : "$ "}
+                {resultadoComparador.ahorroEstimado.toLocaleString("es-VE", {
+                  minimumFractionDigits: 2,
+                })}
+              </Text>
+            ) : null}
+
+            <View
+              style={[styles.separator, { backgroundColor: theme.divider }]}
+            />
+
+            <Text style={[styles.desgloseTitle, { color: theme.textMuted }]}>
+              Comparativa de costos
+            </Text>
+            {resultadoComparador.desgloseOpciones.map((opcion, index) => {
+              const isGanador = index === 0;
+              return (
+                <View
+                  key={index}
                   style={[
-                    styles.desgloseNombre,
-                    index === 0 && styles.textGanador,
+                    styles.desgloseRow,
+                    isGanador && {
+                      backgroundColor: tonoColor + "14",
+                    },
                   ]}
-                  numberOfLines={1}
                 >
-                  {index === 0 ? (
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
+                  <View style={styles.desgloseNombreRow}>
+                    {isGanador && resultadoComparador.ahorroEstimado > 0 ? (
+                      <TrophyIcon size={16} color={tonoColor} />
+                    ) : null}
+                    <Text
+                      style={[
+                        styles.desgloseNombre,
+                        { color: theme.textPrimary },
+                      ]}
+                      numberOfLines={1}
                     >
-                      <TrophyIcon size={20} color={theme.accent} />
-                      <Text>{opcion.nombre}</Text>
-                    </View>
-                  ) : (
-                    opcion.nombre
-                  )}
-                </Text>
-                <Text
-                  style={[
-                    styles.desgloseCosto,
-                    index === 0 && styles.textGanador,
-                  ]}
-                >
-                  {resultadoComparador.monedaAhorro === "VES"
-                    ? "Bs. "
-                    : "$ "}
-                  {opcion.costoEquivalente.toLocaleString("es-VE", {
-                    minimumFractionDigits: 2,
-                  })}
-                </Text>
-              </View>
-            ))}
+                      {opcion.nombre}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.desgloseCosto,
+                      {
+                        color: isGanador ? tonoColor : theme.textPrimary,
+                      },
+                    ]}
+                  >
+                    {resultadoComparador.monedaAhorro === "VES" ? "Bs. " : "$ "}
+                    {opcion.costoEquivalente.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         ) : null}
+
+        <View style={styles.ratesStrip}>
+          <View style={[styles.rateChip, { borderColor: theme.border }]}>
+            <Text style={[styles.rateLabel, { color: theme.textMuted }]}>
+              BCV
+            </Text>
+            <Text
+              style={[
+                styles.rateValue,
+                { color: theme.textPrimary },
+              ]}
+            >
+              Bs. {tasas.bcv.toFixed(2)}
+            </Text>
+          </View>
+          <View style={[styles.rateChip, { borderColor: theme.border }]}>
+            <Text style={[styles.rateLabel, { color: theme.textMuted }]}>
+              P2P Compra
+            </Text>
+            <Text
+              style={[
+                styles.rateValue,
+                { color: theme.textPrimary },
+              ]}
+            >
+              Bs. {tasas.binanceBuy.toFixed(2)}
+            </Text>
+          </View>
+          <View style={[styles.rateChip, { borderColor: theme.border }]}>
+            <Text style={[styles.rateLabel, { color: theme.textMuted }]}>
+              P2P Venta
+            </Text>
+            <Text
+              style={[
+                styles.rateValue,
+                { color: theme.textPrimary },
+              ]}
+            >
+              Bs. {tasas.binanceSell.toFixed(2)}
+            </Text>
+          </View>
+        </View>
       </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  flatContainer: {
-    padding: 20,
-  },
-  cardLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -0.5,
+  container: {
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    width: "100%",
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    marginLeft: 2,
   },
-  toggleContainer: {
-    flexDirection: "row",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 20,
+  segment: {
+    marginBottom: spacing.xxl,
   },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#64748B",
-  },
-  toggleTextActive: {
-    color: "#FFFFFF",
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  flatInputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  currencyPrefix: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  calculateButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  calculateButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+  calculate: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
   },
   diagnosisCard: {
-    padding: 20,
-    borderRadius: 16,
-    marginTop: 20,
+    marginTop: spacing.xxl,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  diagnosisHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: spacing.md,
+  },
+  diagnosisBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.xs,
+    justifyContent: "center",
+    alignItems: "center",
   },
   diagnosisTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   diagnosisText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 12,
-  },
-  diagnosisAhorroContainer: {
-    marginTop: 8,
+    fontSize: 17,
+    fontWeight: "700",
+    lineHeight: 24,
+    marginBottom: 10,
   },
   diagnosisAhorro: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "800",
-    color: "#FFFFFF",
+    fontVariant: ["tabular-nums"],
+    marginBottom: spacing.xs,
   },
   separator: {
     height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    marginVertical: 16,
+    marginVertical: 14,
   },
   desgloseTitle: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: spacing.sm,
   },
   desgloseRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: radius.xs,
+    marginVertical: 2,
+    gap: spacing.sm,
   },
-  desgloseRowGanador: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  desgloseNombreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
   },
   desgloseNombre: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#FFFFFF",
     flex: 1,
   },
   desgloseCosto: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    textAlign: "right",
+    fontVariant: ["tabular-nums"],
   },
-  textGanador: {
-    color: "#FFFFFF",
+  ratesStrip: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: spacing.xl,
+  },
+  rateChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 64,
+  },
+  rateLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  rateValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
 });
