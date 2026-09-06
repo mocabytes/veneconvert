@@ -8,9 +8,18 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HomeIcon, ExchangeIcon, ScaleIcon, GridIcon } from "./Icons";
+import {
+  HomeIcon,
+  HomeFilledIcon,
+  ExchangeIcon,
+  ExchangeFilledIcon,
+  ScaleIcon,
+  ScaleFilledIcon,
+  GridIcon,
+  GridFilledIcon,
+} from "./Icons";
 import { Theme } from "../theme/colors";
-import { spacing, radius, family, motion } from "../theme/tokens";
+import { spacing, family, motion } from "../theme/tokens";
 import { triggerHapticForAction } from "../utils/haptic";
 
 type Tab = 'inicio' | 'conversor' | 'comparador' | 'herramientas';
@@ -22,33 +31,8 @@ interface BottomTabsProps {
   theme: Theme;
 }
 
-const INDICATOR_WIDTH = 72;
-const TAB_HEIGHT = 64;
-const ACTIVE_OPACITY = 0.9;
-
-function PopIcon({
-  active,
-  children,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  const scale = React.useRef(new Animated.Value(1)).current;
-
-  React.useEffect(() => {
-    Animated.spring(scale, {
-      toValue: active ? 1.2 : 1,
-      ...motion.pop,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-  }, [active, scale]);
-
-  return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      {children}
-    </Animated.View>
-  );
-}
+const TAB_HEIGHT = 60;
+const ACTIVE_OPACITY = 0.85;
 
 function TabButton({
   tab,
@@ -59,7 +43,6 @@ function TabButton({
   badgeCount,
   theme,
   onPress,
-  onLayout,
 }: {
   tab: Tab;
   label: string;
@@ -69,14 +52,13 @@ function TabButton({
   badgeCount: number;
   theme: Theme;
   onPress: () => void;
-  onLayout: (x: number, width: number) => void;
 }) {
   const press = React.useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
     Animated.spring(press, {
-      toValue: 0.92,
-      ...motion.pop,
+      toValue: 0.95,
+      ...motion.gentle,
       useNativeDriver: Platform.OS !== "web",
     }).start();
   };
@@ -84,7 +66,7 @@ function TabButton({
   const pressOut = () => {
     Animated.spring(press, {
       toValue: 1,
-      ...motion.pop,
+      ...motion.gentle,
       useNativeDriver: Platform.OS !== "web",
     }).start();
   };
@@ -92,9 +74,6 @@ function TabButton({
   return (
     <Animated.View
       style={[styles.tabButtonWrap, { transform: [{ scale: press }] }]}
-      onLayout={(e) =>
-        onLayout(e.nativeEvent.layout.x, e.nativeEvent.layout.width)
-      }
     >
       <TouchableOpacity
         key={tab}
@@ -110,12 +89,10 @@ function TabButton({
         accessibilityState={{ selected: isActive }}
       >
         <View style={styles.iconArea}>
-          <PopIcon active={isActive}>
-            <IconComponent
-              size={24}
-              color={isActive ? theme.accent : theme.textMuted}
-            />
-          </PopIcon>
+          <IconComponent
+            size={24}
+            color={isActive ? theme.accent : theme.textMuted}
+          />
           {showBadge && badgeCount > 0 ? (
             <View
               style={[styles.badge, { backgroundColor: theme.accent }]}
@@ -149,9 +126,6 @@ export default function BottomTabs({
   theme,
 }: BottomTabsProps) {
   const insets = useSafeAreaInsets();
-  const tabCenters = React.useRef<number[]>([]);
-  const measuredCount = React.useRef(0);
-  const indicatorPos = React.useRef(new Animated.Value(0)).current;
 
   const activeIndex =
     currentTab === 'inicio'
@@ -162,46 +136,11 @@ export default function BottomTabs({
       ? 2
       : 3;
 
-  const animateIndicator = React.useCallback(
-    (index: number) => {
-      const centerX = tabCenters.current[index];
-      if (centerX == null) {
-        return;
-      }
-      Animated.spring(indicatorPos, {
-        toValue: centerX - INDICATOR_WIDTH / 2,
-        ...motion.bouncy,
-        useNativeDriver: Platform.OS !== "web",
-      }).start();
-    },
-    [indicatorPos]
-  );
-
-  const handleTabLayout = React.useCallback(
-    (index: number, x: number, width: number) => {
-      tabCenters.current[index] = x + width / 2;
-      measuredCount.current += 1;
-      if (measuredCount.current >= 4) {
-        animateIndicator(activeIndex);
-      } else if (index === activeIndex) {
-        indicatorPos.setValue(
-          tabCenters.current[index] - INDICATOR_WIDTH / 2
-        );
-      }
-    },
-    [activeIndex, animateIndicator, indicatorPos]
-  );
-
-  React.useEffect(() => {
-    if (tabCenters.current[activeIndex] != null) {
-      animateIndicator(activeIndex);
-    }
-  }, [activeIndex, animateIndicator]);
-
   const renderTab = (
     tab: Tab,
     label: string,
     IconComponent: React.FC<{ size?: number; color?: string }>,
+    FilledComponent: React.FC<{ size?: number; color?: string }>,
     index: number,
     showBadge = false
   ) => {
@@ -212,7 +151,7 @@ export default function BottomTabs({
         key={tab}
         tab={tab}
         label={label}
-        IconComponent={IconComponent}
+        IconComponent={isActive ? FilledComponent : IconComponent}
         isActive={isActive}
         showBadge={showBadge}
         badgeCount={alertsCount}
@@ -221,7 +160,6 @@ export default function BottomTabs({
           triggerHapticForAction("tab");
           setCurrentTab(tab);
         }}
-        onLayout={(x, tabWidth) => handleTabLayout(index, x, tabWidth)}
       />
     );
   };
@@ -233,28 +171,15 @@ export default function BottomTabs({
         {
           backgroundColor: theme.tabBarBackground,
           borderTopColor: theme.border,
-          boxShadow: `0 -8px 24px ${theme.shadow}`,
           paddingBottom: Math.max(insets.bottom, spacing.sm),
         },
       ]}
     >
       <View style={styles.inner}>
-        <Animated.View
-          style={[
-            styles.indicator,
-            {
-              backgroundColor: theme.accentSoft,
-              borderColor: `${theme.accent}55`,
-              boxShadow: `0 4px 16px ${theme.accent}44`,
-              height: 52,
-              transform: [{ translateX: indicatorPos }],
-            },
-          ]}
-        />
-        {renderTab("inicio", "Inicio", HomeIcon, 0)}
-        {renderTab("conversor", "Conversor", ExchangeIcon, 1)}
-        {renderTab("comparador", "Comparador", ScaleIcon, 2)}
-        {renderTab("herramientas", "Herramientas", GridIcon, 3, true)}
+        {renderTab("inicio", "Inicio", HomeIcon, HomeFilledIcon, 0)}
+        {renderTab("conversor", "Conversor", ExchangeIcon, ExchangeFilledIcon, 1)}
+        {renderTab("comparador", "Comparador", ScaleIcon, ScaleFilledIcon, 2)}
+        {renderTab("herramientas", "Herramientas", GridIcon, GridFilledIcon, 3, true)}
       </View>
     </View>
   );
@@ -275,14 +200,6 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     alignSelf: "center",
   },
-  indicator: {
-    position: "absolute",
-    top: 6,
-    left: 0,
-    width: INDICATOR_WIDTH,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-  },
   tabButtonWrap: {
     flex: 1,
   },
@@ -293,8 +210,8 @@ const styles = StyleSheet.create({
     height: TAB_HEIGHT,
   },
   iconArea: {
-    width: INDICATOR_WIDTH - 8,
-    height: 32,
+    width: 56,
+    height: 30,
     justifyContent: "center",
     alignItems: "center",
   },
