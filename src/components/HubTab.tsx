@@ -166,7 +166,7 @@ export default function HubTab({
                 </View>
               ) : null}
               <View style={[styles.toolIcon, { backgroundColor: tint.bg }]}>
-                <tool.icon size={24} color={tint.color} />
+                <tool.icon size={26} color={tint.color} />
               </View>
               <Text style={[styles.toolTitle, { color: theme.textPrimary }]}>
                 {tool.title}
@@ -231,8 +231,8 @@ const styles = StyleSheet.create({
     right: spacing.md,
   },
   toolIcon: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: radius.sm,
     justifyContent: "center",
     alignItems: "center",

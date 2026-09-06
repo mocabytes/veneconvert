@@ -42,7 +42,7 @@ Capas (mapeo no negociable):
 | `infrastructure` | `src/utils` con IO (`history`, `alerts`, `ratesHistory`, `multiCurrency`, `fetchWithTimeout`) | Única capa que toca AsyncStorage/red. |
 | `application` | `src/hooks` (`useRates`, `useHistory`, `useAlerts`, `useMultiCurrency`, `useTheme`) | Orquesta IO, expone estado. No JSX. |
 | `presentation` | `src/components` (+ `ui/`) y `App.tsx` | Consume hooks. **PROHIBIDO** importar IO directo (`AsyncStorage`, `fetch`) desde componentes. Lógica de cálculo vive en `domain`, no en JSX. |
-| `design-system` | `src/theme` (`colors`, `tokens`) + `src/constants` | Tokens primero: prohibido hardcodear colores/espaciados/radios teniendo token. Estilos dinámicos (tema) van inline; `StyleSheet.create` solo valores estáticos (RN web crashea con referencias fuera de scope). |
+| `design-system` | `src/theme` (`colors`, `tokens`) + `src/constants` | Tokens primero: prohibido hardcodear colores/espaciados/radios/familias teniendo token. Texto siempre con `family` (Inter); prohibido `fontWeight` suelto (Android lo ignora con custom font). Estilos dinámicos (tema) van inline; `StyleSheet.create` solo valores estáticos (RN web crashea con referencias fuera de scope). |
 
 Estándares ("Freddy Campos Mindset"):
 1. **YAGNI radical:** nada especulativo, nada hipotético.

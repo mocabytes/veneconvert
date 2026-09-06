@@ -128,7 +128,14 @@ export default function HomeTab({
         </View>
       </View>
 
-      <Card theme={theme} elevated>
+      <Card
+        theme={theme}
+        elevated
+        style={{
+          backgroundColor: theme.accentSoft,
+          borderColor: theme.successBorder,
+        }}
+      >
         <View style={styles.heroHeader}>
           <Text style={[styles.heroEyebrow, { color: theme.textMuted }]}>
             Tasa BCV hoy
@@ -384,7 +391,7 @@ export default function HomeTab({
             <View
               style={[styles.quickIcon, { backgroundColor: theme.accentSoft }]}
             >
-              <action.icon size={18} color={theme.accent} />
+              <action.icon size={20} color={theme.accent} />
             </View>
             <Text style={[styles.quickLabel, { color: theme.textSecondary }]}>
               {action.title}
@@ -620,9 +627,9 @@ const styles = StyleSheet.create({
     minHeight: 92,
   },
   quickIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.xs,
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
     justifyContent: "center",
     alignItems: "center",
   },
