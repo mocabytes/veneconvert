@@ -12,7 +12,18 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from "@expo-google-fonts/inter";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 import BottomTabs from "./src/components/BottomTabs";
 import LoadingScreen from "./src/components/LoadingScreen";
@@ -724,6 +735,14 @@ function MainApp({
 export default function App() {
   const [nombreUsuario, setNombreUsuario] = useState<string>("Usuario");
   const [comprobandoRegistro, setComprobandoRegistro] = useState<boolean>(true);
+  const splashHidden = useRef(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
 
   useEffect(() => {
     const cargarNombre = async () => {
@@ -740,7 +759,20 @@ export default function App() {
     cargarNombre();
   }, []);
 
-  if (comprobandoRegistro) {
+  useEffect(() => {
+    if (fontError) {
+      console.warn("Fonts failed to load, using system font:", fontError);
+    }
+  }, [fontError]);
+
+  useEffect(() => {
+    if (!comprobandoRegistro && (fontsLoaded || fontError) && !splashHidden.current) {
+      splashHidden.current = true;
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [comprobandoRegistro, fontsLoaded, fontError]);
+
+  if (comprobandoRegistro || (!fontsLoaded && !fontError)) {
     return (
       <SafeAreaProvider>
         <LoadingScreen />

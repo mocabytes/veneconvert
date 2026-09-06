@@ -23,6 +23,14 @@ export const shadow = {
   xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
 } as const;
 
+export const family = {
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
+  extrabold: "Inter_800ExtraBold",
+} as const;
+
 export const type = {
   display: { fontSize: 36, lineHeight: 44 },
   title: { fontSize: 22, lineHeight: 28 },
