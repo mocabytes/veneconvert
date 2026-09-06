@@ -26,6 +26,31 @@ const INDICATOR_WIDTH = 64;
 const TAB_HEIGHT = 64;
 const ACTIVE_OPACITY = 0.9;
 
+function PopIcon({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const scale = React.useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scale, {
+      toValue: active ? 1.2 : 1,
+      tension: 320,
+      friction: 9,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
+  }, [active, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export default function BottomTabs({
   currentTab,
   setCurrentTab,
@@ -54,8 +79,8 @@ export default function BottomTabs({
       }
       Animated.spring(indicatorPos, {
         toValue: centerX - INDICATOR_WIDTH / 2,
-        tension: 180,
-        friction: 28,
+        tension: 210,
+        friction: 15,
         useNativeDriver: Platform.OS !== "web",
       }).start();
     },
@@ -115,10 +140,12 @@ export default function BottomTabs({
         accessibilityState={{ selected: isActive }}
       >
         <View style={styles.iconArea}>
-          <IconComponent
-            size={24}
-            color={isActive ? theme.accent : theme.textMuted}
-          />
+          <PopIcon active={isActive}>
+            <IconComponent
+              size={24}
+              color={isActive ? theme.accent : theme.textMuted}
+            />
+          </PopIcon>
           {showDot && alertsCount > 0 ? (
             <View
               style={[styles.dot, { backgroundColor: theme.accent }]}
@@ -128,7 +155,10 @@ export default function BottomTabs({
         <Text
           style={[
             styles.tabText,
-            { color: isActive ? theme.accent : theme.textMuted },
+            {
+              color: isActive ? theme.accent : theme.textMuted,
+              fontFamily: isActive ? family.extrabold : family.semibold,
+            },
           ]}
         >
           {label}
