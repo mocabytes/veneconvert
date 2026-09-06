@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
+  FlatList,
   Platform,
 } from "react-native";
 import { ConversionRecord } from "../utils/history";
@@ -289,32 +290,37 @@ export default function HistoryTab({
               />
             )}
           </Animated.View>
-        ) : conversionHistory.length > 0 ? (
-          <View style={styles.list}>
-            {conversionHistory.slice(0, 20).map((record, index) => (
-              <StaggerIn key={record.id} index={index}>
+        ) : (
+          <FlatList
+            data={conversionHistory}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <StaggerIn index={index}>
                 <Suspense
                   fallback={
                     <ActivityIndicator size="small" color={theme.accent} />
                   }
                 >
                   <SwipeableHistoryItem
-                    record={record}
-                    onDelete={() => onDelete(record.id)}
-                    onShare={() => onShare(record)}
-                    onRepeat={() => onRepeat(record)}
+                    record={item}
+                    onDelete={() => onDelete(item.id)}
+                    onShare={() => onShare(item)}
+                    onRepeat={() => onRepeat(item)}
                     theme={theme}
                   />
                 </Suspense>
               </StaggerIn>
-            ))}
-          </View>
-        ) : (
-          <EmptyState
-            icon={<BookIcon size={26} color={theme.accent} />}
-            title="No hay conversiones aún"
-            description="Tus conversiones aparecerán aquí al usarlas en el Conversor."
-            theme={theme}
+            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              <EmptyState
+                icon={<BookIcon size={26} color={theme.accent} />}
+                title="No hay conversiones aún"
+                description="Tus conversiones aparecerán aquí al usarlas en el Conversor."
+                theme={theme}
+              />
+            }
+            scrollEnabled={false}
           />
         )}
       </View>
@@ -328,8 +334,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     width: "100%",
   },
-  list: {
-    gap: 10,
+  separator: {
+    height: 10,
   },
   clearButton: {
     width: 40,

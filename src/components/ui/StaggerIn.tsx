@@ -18,22 +18,24 @@ export default function StaggerIn({
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(motion.enterDistance)).current;
 
+  const delay = Math.min(index, 10) * motion.staggerStep;
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
         duration: motion.enterDuration,
-        delay: index * motion.staggerStep,
+        delay,
         useNativeDriver,
       }),
       Animated.timing(translateY, {
         toValue: 0,
         duration: motion.enterDuration,
-        delay: index * motion.staggerStep,
+        delay,
         useNativeDriver,
       }),
     ]).start();
-  }, [index, opacity, translateY]);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View
