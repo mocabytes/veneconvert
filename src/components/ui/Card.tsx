@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, ViewStyle, LayoutChangeEvent } from "react-native";
+import { StyleSheet, View, ViewStyle, LayoutChangeEvent, Platform } from "react-native";
 import { Theme } from "../../theme/colors";
 import { spacing, radius } from "../../theme/tokens";
 
@@ -30,10 +30,11 @@ export default function Card({
           borderColor: theme.border,
           padding,
           ...(elevated
-            ? {
-                boxShadow: `0 8px 24px ${theme.shadow}`,
-                elevation: 6,
-              }
+            ? Platform.OS === "android"
+              ? {}
+              : {
+                  boxShadow: `0 8px 24px ${theme.shadow}`,
+                }
             : {}),
         },
         style,
