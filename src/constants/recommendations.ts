@@ -6,40 +6,38 @@ export const RECOMENDACIONES_FINANCIERAS = [
   "Compara precios en bolívares vs dólares en efectivo. Algunos comercios descuentan pagando en divisas.",
 ];
 
-export const ONBOARDING_DATA = [
+export type OnboardingTint = "accent" | "info" | "success";
+
+export interface OnboardingSlide {
+  id: number;
+  title: string;
+  description: string;
+  icon: "exchange" | "chart" | "scale";
+  tint: OnboardingTint;
+}
+
+export const ONBOARDING_DATA: OnboardingSlide[] = [
   {
     id: 1,
-    title: "Bienvenido",
+    title: "Tu dinero, claro.",
     description:
-      "Convierte bolívares, dólares y más monedas al instante.",
+      "Arco convierte bolívares, dólares y más monedas al instante, con las tasas que sí importan.",
     icon: "exchange",
+    tint: "accent",
   },
   {
     id: 2,
-    title: "Tasas en vivo",
-    description:
-      "BCV y P2P actualizadas automáticamente.",
+    title: "Tasas en vivo, sin adivinar.",
+    description: "BCV y P2P actualizadas solas, a cada rato.",
     icon: "chart",
+    tint: "info",
   },
   {
     id: 3,
-    title: "Comparador",
+    title: "Paga siempre lo mínimo.",
     description:
-      "Sabe si pagar en bolívares o divisas te conviene más.",
+      "Arco compara y te dice si conviene pagar en bolívares o en divisas.",
     icon: "scale",
-  },
-  {
-    id: 4,
-    title: "Multi-moneda",
-    description:
-      "Convierte entre más de 10 monedas: euros, pesos, reales y más.",
-    icon: "globe",
-  },
-  {
-    id: 5,
-    title: "Historial",
-    description:
-      "Guarda conversiones y recibe alertas de tasas.",
-    icon: "bell",
+    tint: "success",
   },
 ];

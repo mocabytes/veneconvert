@@ -1,29 +1,39 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Animated,
-  Platform,
   ScrollView,
   StatusBar,
   useWindowDimensions,
+  ViewStyle,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  interpolateColor,
+  Extrapolation,
+  withRepeat,
+  withTiming,
+  Easing,
+  scrollTo,
+  type SharedValue,
+} from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ONBOARDING_DATA } from "../constants/recommendations";
-import {
-  ExchangeIcon,
-  TrendIcon,
-  ScaleIcon,
-  GlobeIcon,
-  BellIcon,
-} from "./Icons";
+import { ONBOARDING_DATA, OnboardingTint } from "../constants/recommendations";
+import { ExchangeIcon, TrendIcon, ScaleIcon } from "./Icons";
 import { Theme } from "../theme/colors";
 import { ResolvedTheme } from "../types";
 import { spacing, radius, family } from "../theme/tokens";
+import { triggerHapticForAction } from "../utils/haptic";
+import PrimaryButton from "./ui/PrimaryButton";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -31,7 +41,89 @@ interface OnboardingProps {
   resolvedTheme: ResolvedTheme;
 }
 
-const useNativeDriver = Platform.OS !== "web";
+const TOTAL_PAGES = ONBOARDING_DATA.length + 1;
+
+function PageTransition({
+  index,
+  scrollX,
+  width,
+  style,
+  children,
+}: {
+  index: number;
+  scrollX: SharedValue<number>;
+  width: number;
+  style?: ViewStyle;
+  children: React.ReactNode;
+}) {
+  const pageStyle = useAnimatedStyle(() => {
+    const progress = scrollX.value / width - index;
+    return {
+      opacity: interpolate(
+        progress,
+        [-1, -0.4, 0, 0.4, 1],
+        [0, 1, 1, 1, 0],
+        Extrapolation.CLAMP
+      ),
+      transform: [
+        {
+          scale: interpolate(
+            progress,
+            [-1, 0, 1],
+            [0.85, 1, 0.85],
+            Extrapolation.CLAMP
+          ),
+        },
+        { translateX: progress * -36 },
+      ],
+    };
+  });
+
+  return <Animated.View style={[style, pageStyle]}>{children}</Animated.View>;
+}
+
+function PageDot({
+  index,
+  scrollX,
+  width,
+  theme,
+  onPress,
+}: {
+  index: number;
+  scrollX: SharedValue<number>;
+  width: number;
+  theme: Theme;
+  onPress: () => void;
+}) {
+  const dotStyle = useAnimatedStyle(() => {
+    const progress = scrollX.value / width;
+    return {
+      width: interpolate(
+        progress,
+        [index - 1, index, index + 1],
+        [7, 24, 7],
+        Extrapolation.CLAMP
+      ),
+      backgroundColor: interpolateColor(
+        progress,
+        [index - 1, index, index + 1],
+        [theme.textMuted, theme.accent, theme.textMuted]
+      ),
+    };
+  });
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.dotHit}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`Ir a la pantalla ${index + 1}`}
+    >
+      <Animated.View style={[styles.dot, dotStyle]} />
+    </TouchableOpacity>
+  );
+}
 
 export default function Onboarding({
   onComplete,
@@ -41,44 +133,56 @@ export default function Onboarding({
   const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nombreInput, setNombreInput] = useState("");
-  const scrollRef = useRef<ScrollView>(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const [nameFocused, setNameFocused] = useState(false);
+  const scrollX = useSharedValue(0);
+  const scrollRef = useAnimatedRef<ScrollView>();
+  const floatY = useSharedValue(0);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver,
-      }),
-    ]).start();
-  }, [currentIndex]);
+    floatY.value = withRepeat(
+      withTiming(-10, { duration: 1600, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, [floatY]);
 
-  const isLast = currentIndex === ONBOARDING_DATA.length - 1;
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
+
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
+
+  const glowShift = useAnimatedStyle(() => ({
+    transform: [{ translateX: scrollX.value * 0.12 }],
+  }));
+
+  const isLast = currentIndex === TOTAL_PAGES - 1;
+
+  const goTo = (index: number) => {
+    setCurrentIndex(index);
+    scrollTo(scrollRef, width * index, 0, true);
+  };
 
   const handleNext = () => {
-    if (currentIndex < ONBOARDING_DATA.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      scrollRef.current?.scrollTo({
-        x: width * (currentIndex + 1),
-        animated: true,
-      });
+    triggerHapticForAction("tab");
+    if (currentIndex < TOTAL_PAGES - 1) {
+      goTo(currentIndex + 1);
     } else {
       handleComplete();
     }
   };
 
   const handleSkip = () => {
+    triggerHapticForAction("tab");
     handleComplete();
   };
 
   const handleComplete = async () => {
+    triggerHapticForAction("success");
     await AsyncStorage.setItem("onboarding_completed", "true");
 
     const name = nombreInput.trim();
@@ -92,26 +196,36 @@ export default function Onboarding({
     onComplete();
   };
 
-  const handleDotPress = (index: number) => {
-    setCurrentIndex(index);
-    scrollRef.current?.scrollTo({ x: width * index, animated: true });
-  };
-
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
-      case "exchange":
-        return <ExchangeIcon size={40} color={theme.accent} />;
       case "chart":
-        return <TrendIcon size={40} color={theme.accent} />;
+        return <TrendIcon size={52} color="#FFFFFF" />;
       case "scale":
-        return <ScaleIcon size={40} color={theme.accent} />;
-      case "globe":
-        return <GlobeIcon size={40} color={theme.accent} />;
-      case "bell":
-        return <BellIcon size={40} color={theme.accent} />;
+        return <ScaleIcon size={52} color="#FFFFFF" />;
       default:
-        return <ExchangeIcon size={40} color={theme.accent} />;
+        return <ExchangeIcon size={52} color="#FFFFFF" />;
     }
+  };
+
+  const getGradient = (tint: OnboardingTint): [string, string] => {
+    switch (tint) {
+      case "info":
+        return [theme.info, theme.accent];
+      case "success":
+        return [theme.success, theme.accent];
+      default:
+        return [theme.accent, theme.success];
+    }
+  };
+
+  const getGlow = (tint: OnboardingTint): string => {
+    const base =
+      tint === "info"
+        ? theme.info
+        : tint === "success"
+        ? theme.success
+        : theme.accent;
+    return `${base}59`;
   };
 
   return (
@@ -120,24 +234,39 @@ export default function Onboarding({
     >
       <StatusBar barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"} />
 
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.blobTop, { backgroundColor: theme.accentSoft }, glowShift]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.blobBottom, { backgroundColor: theme.accentSoft }, glowShift]}
+      />
+
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={handleSkip}
-          style={styles.skipButton}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.skipText, { color: theme.textSecondary }]}>
-            Saltar
-          </Text>
-        </TouchableOpacity>
+        {isLast ? (
+          <View style={styles.skipPlaceholder} />
+        ) : (
+          <TouchableOpacity
+            onPress={handleSkip}
+            style={styles.skipButton}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.skipText, { color: theme.textSecondary }]}>
+              Saltar
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         onMomentumScrollEnd={(e) => {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setCurrentIndex(index);
@@ -146,20 +275,23 @@ export default function Onboarding({
       >
         {ONBOARDING_DATA.map((item, index) => (
           <View key={item.id} style={[styles.slide, { width }]}>
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
+            <PageTransition
+              index={index}
+              scrollX={scrollX}
+              width={width}
+              style={styles.slideInner}
             >
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: theme.accentSoft },
-                ]}
-              >
-                {getIconComponent(item.icon)}
-              </View>
+              <Animated.View style={floatStyle}>
+                <LinearGradient
+                  colors={getGradient(item.tint)}
+                  style={[
+                    styles.iconTile,
+                    { boxShadow: `0 16px 40px ${getGlow(item.tint)}` },
+                  ]}
+                >
+                  {getIconComponent(item.icon)}
+                </LinearGradient>
+              </Animated.View>
 
               <Text style={[styles.title, { color: theme.textPrimary }]}>
                 {item.title}
@@ -169,60 +301,105 @@ export default function Onboarding({
               >
                 {item.description}
               </Text>
-
-              {index === ONBOARDING_DATA.length - 1 ? (
-                <TextInput
-                  style={[
-                    styles.nameInput,
-                    {
-                      backgroundColor: theme.inputBackground,
-                      borderColor: theme.border,
-                      color: theme.textPrimary,
-                    },
-                  ]}
-                  value={nombreInput}
-                  onChangeText={setNombreInput}
-                  placeholder="Tu nombre (opcional)"
-                  placeholderTextColor={theme.textMuted}
-                  maxLength={20}
-                  autoCapitalize="words"
-                  returnKeyType="done"
-                  onSubmitEditing={handleComplete}
-                  accessibilityLabel="Tu nombre"
-                />
-              ) : null}
-            </Animated.View>
+            </PageTransition>
           </View>
         ))}
-      </ScrollView>
+
+        <View key="finale" style={[styles.slide, { width }]}>
+          <PageTransition
+            index={ONBOARDING_DATA.length}
+            scrollX={scrollX}
+            width={width}
+            style={styles.slideInner}
+          >
+            <Animated.View style={floatStyle}>
+              <LinearGradient
+                colors={[theme.accent, theme.success]}
+                style={[
+                  styles.iconTile,
+                  { boxShadow: `0 16px 40px ${getGlow("accent")}` },
+                ]}
+              >
+                <Text style={styles.avatarLetter}>
+                  {(nombreInput.trim() || "?").charAt(0).toUpperCase()}
+                </Text>
+              </LinearGradient>
+            </Animated.View>
+
+            <Text style={[styles.title, { color: theme.textPrimary }]}>
+              ¿Cómo te llamamos?
+            </Text>
+            <Text
+              style={[styles.description, { color: theme.textSecondary }]}
+            >
+              Tu nombre aparece en tu inicio. Puedes saltarlo.
+            </Text>
+
+            <TextInput
+              style={[
+                styles.nameInput,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: nameFocused ? theme.accent : theme.border,
+                  color: theme.textPrimary,
+                },
+              ]}
+              value={nombreInput}
+              onChangeText={setNombreInput}
+              onFocus={() => setNameFocused(true)}
+              onBlur={() => setNameFocused(false)}
+              placeholder="Tu nombre (opcional)"
+              placeholderTextColor={theme.textMuted}
+              maxLength={20}
+              autoCapitalize="words"
+              returnKeyType="done"
+              onSubmitEditing={handleComplete}
+              accessibilityLabel="Tu nombre"
+            />
+          </PageTransition>
+        </View>
+      </Animated.ScrollView>
 
       <View style={styles.footer}>
         <View style={styles.dotsContainer}>
-          {ONBOARDING_DATA.map((_, index) => (
-            <TouchableOpacity
+          {Array.from({ length: TOTAL_PAGES }).map((_, index) => (
+            <PageDot
               key={index}
-              onPress={() => handleDotPress(index)}
-              style={[
-                styles.dot,
-                { backgroundColor: theme.textMuted },
-                index === currentIndex && { backgroundColor: theme.accent },
-                index === currentIndex && styles.activeDot,
-              ]}
-              activeOpacity={0.7}
+              index={index}
+              scrollX={scrollX}
+              width={width}
+              theme={theme}
+              onPress={() => {
+                triggerHapticForAction("tab");
+                goTo(index);
+              }}
             />
           ))}
         </View>
 
-        <TouchableOpacity
-          style={[styles.nextButton, { backgroundColor: theme.accent }]}
-          onPress={handleNext}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.nextButtonText, { color: theme.onAccent }]}>
-            {isLast ? "Empezar" : "Siguiente"}
-          </Text>
-        </TouchableOpacity>
+        {isLast ? (
+          <TouchableOpacity
+            onPress={handleComplete}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Empezar"
+          >
+            <LinearGradient
+              colors={[theme.accent, theme.success]}
+              style={styles.startButton}
+            >
+              <Text style={[styles.startButtonText, { color: "#FFFFFF" }]}>
+                Empezar
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : (
+          <PrimaryButton
+            title="Siguiente"
+            onPress={handleNext}
+            theme={theme}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -232,11 +409,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  blobTop: {
+    position: "absolute",
+    top: -120,
+    right: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    opacity: 0.5,
+  },
+  blobBottom: {
+    position: "absolute",
+    bottom: -100,
+    left: -90,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    opacity: 0.4,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "flex-end",
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.lg,
+    minHeight: 52,
+  },
+  skipPlaceholder: {
+    height: 40,
   },
   skipButton: {
     paddingHorizontal: spacing.lg,
@@ -255,16 +454,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 36,
   },
-  iconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
+  slideInner: {
+    alignItems: "center",
+    width: "100%",
+  },
+  iconTile: {
+    width: 128,
+    height: 128,
+    borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 36,
   },
+  avatarLetter: {
+    fontSize: 56,
+    fontFamily: family.extrabold,
+    color: "#FFFFFF",
+  },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontFamily: family.extrabold,
     textAlign: "center",
     letterSpacing: -0.5,
@@ -280,12 +488,13 @@ const styles = StyleSheet.create({
   nameInput: {
     alignSelf: "stretch",
     marginTop: spacing.xxl,
-    height: 52,
+    height: 56,
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     paddingHorizontal: spacing.lg,
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: family.semibold,
+    textAlign: "center",
   },
   footer: {
     paddingHorizontal: spacing.xxl,
@@ -295,27 +504,25 @@ const styles = StyleSheet.create({
   dotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
     marginBottom: 22,
     gap: spacing.sm,
   },
+  dotHit: {
+    padding: 6,
+  },
   dot: {
-    width: 7,
     height: 7,
     borderRadius: 4,
-    opacity: 0.5,
   },
-  activeDot: {
-    width: 22,
-    opacity: 1,
-  },
-  nextButton: {
+  startButton: {
     height: 56,
     borderRadius: radius.lg,
     justifyContent: "center",
     alignItems: "center",
   },
-  nextButtonText: {
-    fontSize: 16,
+  startButtonText: {
+    fontSize: 17,
     fontFamily: family.extrabold,
   },
 });
