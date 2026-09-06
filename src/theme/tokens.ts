@@ -51,6 +51,15 @@ export const layout = {
   contentBottom: 140,
 } as const;
 
+export const motion = {
+  gentle: { tension: 180, friction: 28 },
+  bouncy: { tension: 210, friction: 15 },
+  pop: { tension: 320, friction: 9 },
+  staggerStep: 70,
+  enterDuration: 280,
+  enterDistance: 14,
+} as const;
+
 export const spacingScale = spacing;
 export const radiusScale = radius;
 export const shadowScale = shadow;

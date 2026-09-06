@@ -32,6 +32,8 @@ import Card from "./ui/Card";
 import AmountText from "./ui/AmountText";
 import Badge from "./ui/Badge";
 import Sparkline from "./ui/Sparkline";
+import StaggerIn from "./ui/StaggerIn";
+import { useCountUp } from "../hooks/useCountUp";
 
 interface HomeTabProps {
   nombreUsuario: string;
@@ -66,6 +68,7 @@ export default function HomeTab({
   const change = stats.bcv.change;
   const hasHistory = ratesHistory.length >= 2;
   const spread = Math.max(0, tasas.binanceBuy - tasas.binanceSell);
+  const heroRate = useCountUp(tasas.bcv);
   const recomendacion = React.useMemo(
     () => recomendarOperacion(tasas),
     [tasas],
@@ -149,7 +152,7 @@ export default function HomeTab({
           )}
         </View>
         <AmountText
-          value={tasas.bcv.toFixed(2)}
+          value={heroRate}
           prefix="Bs. "
           size="xl"
           color={theme.textPrimary}
@@ -360,19 +363,24 @@ export default function HomeTab({
       </View>
 
       <View style={styles.quickRow}>
-        {quickActions.map((action) => (
-          <TouchableOpacity
+        {quickActions.map((action, index) => (
+          <StaggerIn
             key={action.tab}
-            style={[
-              styles.quickItem,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-            onPress={() => handleQuickAction(action.tab)}
-            activeOpacity={0.7}
-            accessible={true}
-            accessibilityLabel={action.title}
-            accessibilityRole="button"
+            index={index}
+            style={styles.quickItemWrap}
           >
+            <TouchableOpacity
+              style={[
+                styles.quickItem,
+                styles.quickFill,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={() => handleQuickAction(action.tab)}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel={action.title}
+              accessibilityRole="button"
+            >
             <View
               style={[styles.quickIcon, { backgroundColor: theme.accentSoft }]}
             >
@@ -381,7 +389,8 @@ export default function HomeTab({
             <Text style={[styles.quickLabel, { color: theme.textSecondary }]}>
               {action.title}
             </Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </StaggerIn>
         ))}
       </View>
     </Animated.View>
@@ -594,8 +603,13 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: spacing.xxl,
   },
-  quickItem: {
+  quickItemWrap: {
     flex: 1,
+  },
+  quickFill: {
+    flex: 1,
+  },
+  quickItem: {
     borderWidth: 1,
     borderRadius: radius.md,
     paddingVertical: spacing.lg,

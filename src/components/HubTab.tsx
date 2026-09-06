@@ -24,6 +24,7 @@ import { spacing, radius, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import Card from "./ui/Card";
 import Badge from "./ui/Badge";
+import StaggerIn from "./ui/StaggerIn";
 
 interface HubTabProps {
   historialCount: number;
@@ -126,12 +127,13 @@ export default function HubTab({
       />
 
       <View style={styles.grid}>
-        {tools.map((tool) => {
+        {tools.map((tool, index) => {
           const tint = tintMap[tool.tint];
           const showBadge = (tool.badge ?? 0) > 0;
           return (
-            <TouchableOpacity
+            <StaggerIn
               key={tool.tab}
+              index={index}
               style={[
                 styles.gridItem,
                 {
@@ -142,6 +144,9 @@ export default function HubTab({
                   borderColor: theme.border,
                 },
               ]}
+            >
+            <TouchableOpacity
+              style={styles.gridFill}
               onPress={() => {
                 triggerHapticForAction("tab");
                 onNavigateToTab(tool.tab);
@@ -178,6 +183,7 @@ export default function HubTab({
                 <ChevronRightIcon size={14} color={tint.color} />
               </View>
             </TouchableOpacity>
+            </StaggerIn>
           );
         })}
       </View>
@@ -215,6 +221,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.lg,
     paddingTop: spacing.xl,
+  },
+  gridFill: {
+    flex: 1,
   },
   badgeCorner: {
     position: "absolute",

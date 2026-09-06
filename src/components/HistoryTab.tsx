@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
+  Platform,
 } from "react-native";
 import { ConversionRecord } from "../utils/history";
 import {
@@ -23,6 +24,7 @@ import AmountInput from "./ui/AmountInput";
 import PrimaryButton from "./ui/PrimaryButton";
 import Card from "./ui/Card";
 import Badge from "./ui/Badge";
+import StaggerIn from "./ui/StaggerIn";
 import { BookIcon, TrashIcon, TrendIcon } from "./Icons";
 
 const SwipeableHistoryItem = lazy(
@@ -81,11 +83,24 @@ export default function HistoryTab({
   const [dateInput, setDateInput] = useState("");
   const [searchedIso, setSearchedIso] = useState<string | null>(null);
   const [invalidInput, setInvalidInput] = useState(false);
+  const shake = useRef(new Animated.Value(0)).current;
 
   const runSearch = (raw: string) => {
     const iso = parseDateInput(raw);
     setInvalidInput(iso === null);
     setSearchedIso(iso);
+    if (iso === null) {
+      shake.setValue(0);
+      Animated.sequence(
+        [-8, 8, -5, 5, 0].map((toValue) =>
+          Animated.timing(shake, {
+            toValue,
+            duration: 55,
+            useNativeDriver: Platform.OS !== "web",
+          })
+        )
+      ).start();
+    }
   };
 
   const runShortcut = (daysBack: number) => {
@@ -158,7 +173,7 @@ export default function HistoryTab({
         />
 
         {section === "tasas" ? (
-          <View>
+          <Animated.View style={{ transform: [{ translateX: shake }] }}>
             <AmountInput
               label="Fecha"
               value={dateInput}
@@ -273,24 +288,25 @@ export default function HistoryTab({
                 theme={theme}
               />
             )}
-          </View>
+          </Animated.View>
         ) : conversionHistory.length > 0 ? (
           <View style={styles.list}>
-            {conversionHistory.slice(0, 20).map((record) => (
-              <Suspense
-                key={record.id}
-                fallback={
-                  <ActivityIndicator size="small" color={theme.accent} />
-                }
-              >
-                <SwipeableHistoryItem
-                  record={record}
-                  onDelete={() => onDelete(record.id)}
-                  onShare={() => onShare(record)}
-                  onRepeat={() => onRepeat(record)}
-                  theme={theme}
-                />
-              </Suspense>
+            {conversionHistory.slice(0, 20).map((record, index) => (
+              <StaggerIn key={record.id} index={index}>
+                <Suspense
+                  fallback={
+                    <ActivityIndicator size="small" color={theme.accent} />
+                  }
+                >
+                  <SwipeableHistoryItem
+                    record={record}
+                    onDelete={() => onDelete(record.id)}
+                    onShare={() => onShare(record)}
+                    onRepeat={() => onRepeat(record)}
+                    theme={theme}
+                  />
+                </Suspense>
+              </StaggerIn>
             ))}
           </View>
         ) : (

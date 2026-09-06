@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomeIcon, ExchangeIcon, ScaleIcon, GridIcon } from "./Icons";
 import { Theme } from "../theme/colors";
-import { spacing, radius, family } from "../theme/tokens";
+import { spacing, radius, family, motion } from "../theme/tokens";
 import { triggerHapticForAction } from "../utils/haptic";
 
 type Tab = 'inicio' | 'conversor' | 'comparador' | 'herramientas';
@@ -38,8 +38,7 @@ function PopIcon({
   React.useEffect(() => {
     Animated.spring(scale, {
       toValue: active ? 1.2 : 1,
-      tension: 320,
-      friction: 9,
+      ...motion.pop,
       useNativeDriver: Platform.OS !== "web",
     }).start();
   }, [active, scale]);
@@ -79,8 +78,7 @@ export default function BottomTabs({
       }
       Animated.spring(indicatorPos, {
         toValue: centerX - INDICATOR_WIDTH / 2,
-        tension: 210,
-        friction: 15,
+        ...motion.bouncy,
         useNativeDriver: Platform.OS !== "web",
       }).start();
     },
