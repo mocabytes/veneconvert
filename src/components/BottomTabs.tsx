@@ -92,11 +92,6 @@ export default function BottomTabs({
   ) => {
     const isActive = activeIndex === index;
 
-    const hoverProps =
-      Platform.OS === "web"
-        ? ({ onMouseEnter: () => animateIndicator(index) } as any)
-        : {};
-
     return (
       <TouchableOpacity
         key={tab}
@@ -112,7 +107,6 @@ export default function BottomTabs({
             e.nativeEvent.layout.width
           )
         }
-        {...hoverProps}
         activeOpacity={ACTIVE_OPACITY}
         accessible={true}
         accessibilityLabel={label}
@@ -153,9 +147,6 @@ export default function BottomTabs({
           paddingBottom: Math.max(insets.bottom, spacing.sm),
         },
       ]}
-      {...(Platform.OS === "web"
-        ? ({ onMouseLeave: () => animateIndicator(activeIndex) } as any)
-        : {})}
     >
       <View style={styles.inner}>
         <Animated.View
@@ -164,6 +155,7 @@ export default function BottomTabs({
             {
               backgroundColor: theme.accentSoft,
               height: 36,
+              transform: [{ translateX: indicatorPos }],
             },
           ]}
         />
