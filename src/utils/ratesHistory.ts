@@ -55,6 +55,69 @@ export async function clearRateHistory(): Promise<void> {
   }
 }
 
+export function findRateByDate(
+  history: RateHistoryPoint[],
+  isoDate: string
+): RateHistoryPoint | null {
+  return history.find((point) => point.date === isoDate) ?? null;
+}
+
+export function findNearestRate(
+  history: RateHistoryPoint[],
+  isoDate: string
+): RateHistoryPoint | null {
+  if (history.length === 0) {
+    return null;
+  }
+  const target = Date.parse(`${isoDate}T00:00:00Z`);
+  let best: RateHistoryPoint | null = null;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (const point of history) {
+    const diff = Math.abs(Date.parse(`${point.date}T00:00:00Z`) - target);
+    if (
+      diff < bestDiff ||
+      (diff === bestDiff && best !== null && point.date < best.date)
+    ) {
+      best = point;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
+
+export function parseDateInput(input: string): string | null {
+  const match = input.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) {
+    return null;
+  }
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(
+    2,
+    '0'
+  )}`;
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (iso > todayIso) {
+    return null;
+  }
+  return iso;
+}
+
 function withOpacity(color: string, opacity: number): string {
   if (color.startsWith('#')) {
     const r = parseInt(color.slice(1, 3), 16);

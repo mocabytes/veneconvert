@@ -103,4 +103,4 @@ Todo verde antes de afirmar "listo". Si algo falla, se reporta, no se maquilla.
 1. `REFACTOR/MS/Split pure and IO utils` — separar `src/utils/pure/` (sin IO) de `src/utils/io/`; prohibir IO fuera de `io/` + hooks. Evidencia: `Onboarding.tsx` importa `AsyncStorage` directo (capa presentation tocando IO).
 2. `CHORE/MS/Enforce no-explicit-any as error` — subir regla en `.eslintrc.js` y limpiar `any` residuales. Evidencia: 2× `as any` en `BottomTabs.tsx` (desaparecen con el fix del navbar pendiente).
 3. `REFACTOR/MS/Remove hardcoded style values` — barrido de colores/espaciados hardcodeados a tokens. Evidencia: `LoadingScreen.tsx` hardcodea `#0B0F0E`/`#10B981` (paleta vieja, ignora tema).
-4. `TEST/MS/Add coverage for new utils` — tests para `findRateByDate`/parser de fecha del buscador histórico (cuando se implemente).
+4. ✅ `TEST+FEAT/MS/Rate date lookup` — `findRateByDate`/`findNearestRate`/`parseDateInput` con tests + subsección Tasas en Historial.

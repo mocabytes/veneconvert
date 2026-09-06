@@ -650,6 +650,7 @@ function MainApp({
         {currentTab === "historial" && (
           <HistoryTab
             conversionHistory={conversionHistory}
+            ratesHistory={ratesHistory}
             onDelete={handleDeleteConversion}
             onShare={handleShareConversion}
             onRepeat={repetirConversion}
