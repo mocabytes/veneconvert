@@ -30,10 +30,10 @@ import { RateHistoryPoint, getRateStats } from "../utils/ratesHistory";
 import { TabMode } from "../types";
 import Card from "./ui/Card";
 import AmountText from "./ui/AmountText";
+import AnimatedRateNumber from "./ui/AnimatedRateNumber";
 import Badge from "./ui/Badge";
 import Sparkline from "./ui/Sparkline";
 import StaggerIn from "./ui/StaggerIn";
-import { useCountUp } from "../hooks/useCountUp";
 
 interface HomeTabProps {
   nombreUsuario: string;
@@ -68,7 +68,6 @@ export default function HomeTab({
   const change = stats.bcv.change;
   const hasHistory = ratesHistory.length >= 2;
   const spread = Math.max(0, tasas.binanceBuy - tasas.binanceSell);
-  const heroRate = useCountUp(tasas.bcv);
   const recomendacion = React.useMemo(
     () => recomendarOperacion(tasas),
     [tasas],
@@ -158,8 +157,8 @@ export default function HomeTab({
             </TouchableOpacity>
           )}
         </View>
-        <AmountText
-          value={heroRate}
+        <AnimatedRateNumber
+          value={tasas.bcv}
           prefix="Bs. "
           size="xl"
           color={theme.textPrimary}
