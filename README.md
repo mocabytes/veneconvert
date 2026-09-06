@@ -14,6 +14,7 @@ Una aplicación móvil moderna para conversión de monedas venezolanas, optimiza
 - **Tasas P2P Binance**: Tasas de compra y venta de USDT en Binance P2P
 - **Modo Offline**: Funciona con tasas cacheadas cuando no hay conexión
 - **Sincronización Automática**: Actualización de tasas en tiempo real
+- **Pull-to-refresh**: Actualiza las tasas manualmente con un gesto
 
 ### Herramientas Financieras
 - **Conversor Rápido**: Conversión instantánea entre VES, USD y USDT
@@ -72,22 +73,19 @@ npm run web
 
 ### Core
 - **React Native 0.85.3**: Framework principal
-- **Expo 56.0.12**: Plataforma de desarrollo
-- **TypeScript 5.1.6**: Tipado estático
+- **Expo 56.0.19**: Plataforma de desarrollo
+- **React 19.2.3**: Librería de UI
+- **TypeScript 6.0.3**: Tipado estático
 
 ### UI/UX
-- **React Native Reanimated 3.16.1**: Animaciones de alto rendimiento
-- **React Native Gesture Handler 2.20.2**: Gestos táctiles
+- **React Native Reanimated 4.3.1**: Animaciones de alto rendimiento
+- **React Native Gesture Handler 2.31.1**: Gestos táctiles
 - **React Native Chart Kit 7.0.2**: Gráficos de tendencias
-- **React Native SVG 15.15.5**: Gráficos vectoriales
+- **React Native SVG 15.15.4**: Gráficos vectoriales
+- **Expo Haptics 56.0.3**: Feedback háptico nativo
 
 ### Almacenamiento
 - **Async Storage 2.2.0**: Almacenamiento local persistente
-
-### Analytics & Monitoreo
-- **Firebase Analytics 20.0.0**: Análisis de uso
-- **Sentry 5.20.0**: Monitoreo de errores
-- **React Native Performance 5.0.0**: Optimización de rendimiento
 
 ### Desarrollo
 - **Jest 29.7.0**: Testing
@@ -100,33 +98,47 @@ npm run web
 ```
 veneconvert/
 ├── src/
-│   ├── components/          # Componentes UI reutilizables
+│   ├── components/          # Componentes UI reutilizables y pestañas
+│   │   ├── AlertsTab.tsx
 │   │   ├── AnimatedButton.tsx
 │   │   ├── BottomTabs.tsx
 │   │   ├── ComparatorTab.tsx
 │   │   ├── ConverterTab.tsx
-│   │   ├── CurrencyInput.tsx
+│   │   ├── HistoryTab.tsx
 │   │   ├── HomeTab.tsx
 │   │   ├── Icons.tsx
+│   │   ├── LoadingScreen.tsx
 │   │   ├── MoreMenu.tsx
+│   │   ├── MultiCurrencyTab.tsx
 │   │   ├── Navbar.tsx
 │   │   ├── Onboarding.tsx
-│   │   └── PulseAnimation.tsx
+│   │   ├── PulseAnimation.tsx
+│   │   ├── SettingsTab.tsx
+│   │   ├── SwipeableHistoryItem.tsx
+│   │   └── TrendsTab.tsx
 │   ├── constants/           # Constantes y configuraciones
 │   │   └── recommendations.ts
+│   ├── hooks/               # Hooks de lógica reutilizable
+│   │   ├── useAlerts.ts
+│   │   ├── useHistory.ts
+│   │   ├── useMultiCurrency.ts
+│   │   ├── useRates.ts
+│   │   └── useTheme.ts
 │   ├── theme/              # Temas y colores
 │   │   └── colors.ts
+│   ├── types.ts            # Tipos compartidos
 │   └── utils/              # Funciones de utilidad
 │       ├── accessibility.ts
 │       ├── alerts.ts
 │       ├── calculations.ts
+│       ├── fetchWithTimeout.ts
 │       ├── haptic.ts
 │       ├── history.ts
 │       ├── multiCurrency.ts
 │       ├── ratesHistory.ts
 │       └── responsive.ts
 ├── assets/                 # Imágenes y recursos
-├── App.tsx                 # Componente principal
+├── App.tsx                 # Componente principal (orquestador de pestañas)
 ├── package.json            # Dependencias
 ├── tsconfig.json          # Configuración TypeScript
 └── eas.json               # Configuración EAS Build
@@ -179,8 +191,8 @@ Las tasas se almacenan localmente con:
 ## 🔒 Seguridad
 
 - Validación de inputs en todas las conversiones
-- Manejo seguro de errores en llamadas API
-- Almacenamiento local encriptado (AsyncStorage)
+- Manejo seguro de errores en llamadas API con timeout y AbortController
+- Fallback a tasas cacheadas en modo offline
 - Auditoría de dependencias regular
 
 ## 🧪 Testing
