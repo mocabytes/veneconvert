@@ -27,9 +27,25 @@ export async function saveConversion(
   try {
     const existingHistory = await getConversionHistory();
 
+    const last = existingHistory[0];
+    const isDuplicate =
+      !!last &&
+      last.fromCurrency === record.fromCurrency &&
+      last.toCurrency === record.toCurrency &&
+      last.fromAmount === record.fromAmount &&
+      last.toAmount === record.toAmount &&
+      Date.now() - new Date(last.timestamp).getTime() < 60000;
+
+    if (isDuplicate) {
+      return;
+    }
+
     const newRecord: ConversionRecord = {
       ...record,
-      id: Date.now().toString(),
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: new Date().toISOString(),
     };
 

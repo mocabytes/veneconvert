@@ -51,7 +51,8 @@ export function analizarCompra(
     return null;
   }
 
-  const factorBinance = 1 + comisionBinancePct / 100;
+  const comisionSegura = Math.min(Math.max(comisionBinancePct, 0), 99.99);
+  const factorBinance = 1 + comisionSegura / 100;
 
   // ==========================================
   // CASO 1: EL USUARIO TIENE BOLÍVARES (VES)
@@ -80,7 +81,9 @@ export function analizarCompra(
     const ahorro = peor.costo - mejor.costo;
 
     let mensaje = "";
-    if (mejor.id === "PAGAR_DIRECTO_BS") {
+    if (ahorro === 0) {
+      mensaje = "Ambas opciones cuestan lo mismo.";
+    } else if (mejor.id === "PAGAR_DIRECTO_BS") {
       mensaje = "Te conviene pagar directamente en Bolívares.";
     } else {
       mensaje =
@@ -105,7 +108,7 @@ export function analizarCompra(
   else {
     const costoDirectoUSD = precioDivisa;
     const costoViaBinance =
-      precioBs / (tasas.binanceSell * (1 - comisionBinancePct / 100));
+      precioBs / (tasas.binanceSell * (1 - comisionSegura / 100));
 
     const opciones = [
       {
@@ -127,7 +130,9 @@ export function analizarCompra(
     const ahorro = peor.costo - mejor.costo;
 
     let mensaje = "";
-    if (mejor.id === "PAGAR_DIRECTO_USD") {
+    if (ahorro === 0) {
+      mensaje = "Ambas opciones cuestan lo mismo.";
+    } else if (mejor.id === "PAGAR_DIRECTO_USD") {
       mensaje = "Te conviene pagar directamente con tus Divisas/Efectivo.";
     } else {
       mensaje =

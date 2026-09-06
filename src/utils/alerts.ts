@@ -19,7 +19,10 @@ export async function saveAlert(
     const existingAlerts = await getAlerts();
     const newAlert: RateAlert = {
       ...alert,
-      id: Date.now().toString(),
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       createdAt: new Date().toISOString(),
     };
 
@@ -69,6 +72,30 @@ export async function deleteAlert(id: string): Promise<void> {
   }
 }
 
+export async function clearAllAlerts(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ALERTS_KEY, JSON.stringify([]));
+  } catch (error) {
+    console.error("Error clearing alerts:", error);
+  }
+}
+
+export function getAlertCurrentRate(
+  alert: RateAlert,
+  currentRates: { bcv: number; binanceBuy: number; binanceSell: number }
+): number | null {
+  switch (alert.type) {
+    case "BCV":
+      return currentRates.bcv;
+    case "BINANCE_BUY":
+      return currentRates.binanceBuy;
+    case "BINANCE_SELL":
+      return currentRates.binanceSell;
+    default:
+      return null;
+  }
+}
+
 export async function checkAlerts(currentRates: {
   bcv: number;
   binanceBuy: number;
@@ -83,19 +110,9 @@ export async function checkAlerts(currentRates: {
         continue;
       }
 
-      let currentRate: number;
-      switch (alert.type) {
-        case "BCV":
-          currentRate = currentRates.bcv;
-          break;
-        case "BINANCE_BUY":
-          currentRate = currentRates.binanceBuy;
-          break;
-        case "BINANCE_SELL":
-          currentRate = currentRates.binanceSell;
-          break;
-        default:
-          continue;
+      const currentRate = getAlertCurrentRate(alert, currentRates);
+      if (currentRate === null) {
+        continue;
       }
 
       let shouldTrigger = false;

@@ -1,3 +1,52 @@
+import { fetchWithTimeout } from "./fetchWithTimeout";
+
+const FX_API_URL = "https://open.er-api.com/v6/latest/USD";
+const FX_CACHE_TTL_MS = 60_000;
+const EXTRA_FX_CURRENCIES = ["PEN", "BRL", "MXN", "CRC", "CAD", "AUD"];
+
+let fxRatesCache: { timestamp: number; rates: { [key: string]: number } } | null =
+  null;
+
+export function resetFXRatesCache(): void {
+  fxRatesCache = null;
+}
+
+async function fetchFXRatesUSD(): Promise<{ [key: string]: number } | null> {
+  if (
+    fxRatesCache &&
+    Date.now() - fxRatesCache.timestamp < FX_CACHE_TTL_MS
+  ) {
+    return fxRatesCache.rates;
+  }
+
+  const res = await fetchWithTimeout(FX_API_URL);
+  if (!res.ok) {
+    return null;
+  }
+
+  const data = await res.json();
+  const rawRates: unknown = data?.rates;
+  if (!rawRates || typeof rawRates !== "object") {
+    return null;
+  }
+
+  const rates: { [key: string]: number } = {};
+  for (const [code, value] of Object.entries(
+    rawRates as { [key: string]: unknown }
+  )) {
+    const num = Number(value);
+    if (isFinite(num) && num > 0) {
+      rates[code] = num;
+    }
+  }
+  if (!rates.USD || rates.USD <= 0) {
+    return null;
+  }
+
+  fxRatesCache = { timestamp: Date.now(), rates };
+  return rates;
+}
+
 export interface Currency {
   code: string;
   symbol: string;
@@ -75,95 +124,84 @@ export function formatCurrency(amount: number, currency: string): string {
   return `${symbol} ${amount.toFixed(2)}`;
 }
 
+function buildBaseRates(bcvRate: number, paraleloRate: number): { [key: string]: number } {
+  return {
+    VES: 1,
+    USD: bcvRate,
+    EUR: bcvRate * 1.08,
+    COP: bcvRate * 0.00025,
+    PEN: bcvRate * 0.27,
+    BRL: bcvRate * 0.2,
+    MXN: bcvRate * 0.055,
+    USDT: paraleloRate,
+    CRC: bcvRate * 0.0018,
+    CAD: bcvRate * 0.73,
+    AUD: bcvRate * 0.65,
+  };
+}
+
+function normalizeRates(
+  baseRates: { [key: string]: number },
+  baseCurrency: string
+): { [key: string]: number } {
+  const baseRate = baseRates[baseCurrency];
+  if (!baseRate) {
+    return {};
+  }
+
+  const rates: { [key: string]: number } = {};
+  for (const [code, rate] of Object.entries(baseRates)) {
+    rates[code] = rate / baseRate;
+  }
+  return rates;
+}
+
 export async function getExchangeRates(
   baseCurrency: string = 'VES',
-  _localRates?: { bcv: number; binanceBuy: number }
+  localRates?: { bcv: number; binanceBuy: number }
 ): Promise<{ [key: string]: number }> {
-  const rates: { [key: string]: number } = {};
+  const bcvRate = localRates?.bcv || 36.5;
+  const paraleloRate = localRates?.binanceBuy || 40.1;
+  const baseRates = buildBaseRates(bcvRate, paraleloRate);
 
   try {
-    // Obtener tasas de la API de Venezuela
-    const [resBcv, resParalelo, resEuro, resCOP] = await Promise.all([
-      fetch("https://ve.dolarapi.com/v1/dolares/oficial"),
-      fetch("https://ve.dolarapi.com/v1/dolares/paralelo"),
-      fetch("https://ve.dolarapi.com/v1/dolares/euro"),
-      fetch("https://ve.dolarapi.com/v1/dolares/peso"),
+    const [resEuro, resCOP] = await Promise.all([
+      fetchWithTimeout("https://ve.dolarapi.com/v1/dolares/euro"),
+      fetchWithTimeout("https://ve.dolarapi.com/v1/dolares/peso"),
     ]);
 
-    if (!resBcv.ok || !resParalelo.ok) {
-      throw new Error("Fallo de red");
+    if (resEuro.ok) {
+      const dataEuro = await resEuro.json();
+      const euroRate = Number(dataEuro.promedio);
+      if (euroRate > 0) {
+        baseRates.EUR = euroRate;
+      }
     }
 
-    const dataBcv = await resBcv.json();
-    const dataParalelo = await resParalelo.json();
-    const dataEuro = resEuro.ok ? await resEuro.json() : null;
-    const dataCOP = resCOP.ok ? await resCOP.json() : null;
-
-    const bcvRate = Number(dataBcv.promedio);
-    const paraleloRate = Number(dataParalelo.promedio);
-    const euroRate = dataEuro ? Number(dataEuro.promedio) : null;
-    const copRate = dataCOP ? Number(dataCOP.promedio) : null;
-
-    // Tasas base en VES (cuántos VES vale 1 unidad de cada moneda)
-    const baseRates: { [key: string]: number } = {
-      VES: 1,
-      USD: bcvRate,
-      EUR: euroRate || bcvRate * 1.08,
-      COP: copRate || bcvRate * 0.00025,
-      PEN: bcvRate * 0.027,
-      BRL: bcvRate * 0.2,
-      MXN: bcvRate * 0.055,
-      USDT: paraleloRate,
-      CRC: bcvRate * 0.0018,
-      CAD: bcvRate * 0.73,
-      AUD: bcvRate * 0.65,
-    };
-
-    if (baseCurrency === "VES") {
-      return baseRates;
+    if (resCOP.ok) {
+      const dataCOP = await resCOP.json();
+      const copRate = Number(dataCOP.promedio);
+      if (copRate > 0) {
+        baseRates.COP = copRate;
+      }
     }
-
-    const baseRate = baseRates[baseCurrency];
-    if (!baseRate) {
-      return {};
-    }
-
-    for (const [code, rate] of Object.entries(baseRates)) {
-      rates[code] = rate / baseRate;
-    }
-
-    return rates;
   } catch (error) {
-    console.error("Error obteniendo tasas de cambio:", error);
-
-    // Fallback a tasas estáticas si falla la API
-    const baseRates: { [key: string]: number } = {
-      VES: 1,
-      USD: 0.027,
-      EUR: 0.025,
-      COP: 110,
-      PEN: 0.1,
-      BRL: 0.13,
-      MXN: 0.48,
-      USDT: 0.025,
-      CRC: 0.0018,
-      CAD: 0.73,
-      AUD: 0.65,
-    };
-
-    if (baseCurrency === "VES") {
-      return baseRates;
-    }
-
-    const baseRate = baseRates[baseCurrency];
-    if (!baseRate) {
-      return {};
-    }
-
-    for (const [code, rate] of Object.entries(baseRates)) {
-      rates[code] = rate / baseRate;
-    }
-
-    return rates;
+    console.error("Error obteniendo tasas adicionales:", error);
   }
+
+  try {
+    const fxRates = await fetchFXRatesUSD();
+    if (fxRates) {
+      for (const code of EXTRA_FX_CURRENCIES) {
+        const usdRate = fxRates[code];
+        if (usdRate && usdRate > 0) {
+          baseRates[code] = bcvRate / usdRate;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error obteniendo tasas FX:", error);
+  }
+
+  return normalizeRates(baseRates, baseCurrency);
 }

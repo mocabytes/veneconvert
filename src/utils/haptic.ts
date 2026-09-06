@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 
 export type HapticType =
   | 'light'
@@ -14,19 +15,32 @@ export function triggerHaptic(type: HapticType = "light") {
     return;
   }
 
-  try {
-    // Use React Native's built-in haptic feedback if available
-    if (Platform.OS === "ios" || Platform.OS === "android") {
-      // For now, this is a placeholder - actual haptic feedback
-      // would require expo-haptics or react-native-haptic-feedback
-      // The app will work without haptic feedback
-      console.log(
-        `Haptic feedback: ${type} (not implemented without expo-haptics)`
-      );
-    }
-  } catch (error) {
-    console.log("Haptic feedback not available:", error);
+  let action: Promise<void> | undefined;
+  switch (type) {
+    case "light":
+      action = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      break;
+    case "medium":
+      action = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      break;
+    case "heavy":
+      action = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      break;
+    case "success":
+      action = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      break;
+    case "warning":
+      action = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      break;
+    case "error":
+      action = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      break;
+    case "selection":
+      action = Haptics.selectionAsync();
+      break;
   }
+
+  action?.catch(() => {});
 }
 
 export function triggerHapticForAction(

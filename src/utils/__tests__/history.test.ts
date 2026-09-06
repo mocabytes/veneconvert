@@ -48,8 +48,10 @@ describe('History Utils', () => {
     it('debe limitar el historial a 50 items', async () => {
       const existingHistory = Array(50).fill(null).map((_, i) => ({
         ...mockConversion,
+        fromAmount: 1000 + i,
+        toAmount: 27.4 + i,
         id: (i + 1).toString(),
-        timestamp: new Date().toISOString(),
+        timestamp: `2024-01-01T00:00:0${i.toString().padStart(2, '0')}.000Z`,
       }));
 
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(existingHistory));
@@ -61,6 +63,20 @@ describe('History Utils', () => {
         (AsyncStorage.setItem as jest.Mock).mock.calls[0][1]
       );
       expect(savedData.length).toBe(50);
+    });
+
+    it('debe omitir guardar si el último registro es idéntico y reciente', async () => {
+      const recent = {
+        ...mockConversion,
+        id: '1',
+        timestamp: new Date().toISOString(),
+      };
+
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify([recent]));
+
+      await saveConversion(mockConversion);
+
+      expect(AsyncStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
