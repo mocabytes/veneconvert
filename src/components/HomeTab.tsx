@@ -4,59 +4,104 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Animated,
   ActivityIndicator,
+  Animated,
+  Share,
 } from "react-native";
 import { triggerHapticForAction } from "../utils/haptic";
 import {
-  ExchangeIcon,
-  ScaleIcon,
-  BookIcon,
-  TrendIcon,
+  ShareIcon,
   ClockIcon,
-  LightbulbIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ArrowRightIcon,
+  WalletIcon,
+  TrendingUpIcon,
+  BookIcon,
+  ScaleIcon,
+  SwapIcon,
+  SwapVerticalIcon,
 } from "./Icons";
-import PulseAnimation from "./PulseAnimation";
+import { formatRelativeTime } from "../utils/time";
+import { recomendarOperacion } from "../utils/recomendacion";
+import { Theme } from "../theme/colors";
+import { spacing, radius, type } from "../theme/tokens";
+import { RateHistoryPoint, getRateStats } from "../utils/ratesHistory";
+import { TabMode } from "../types";
+import Card from "./ui/Card";
+import AmountText from "./ui/AmountText";
+import Badge from "./ui/Badge";
+import Sparkline from "./ui/Sparkline";
 
 interface HomeTabProps {
   nombreUsuario: string;
   tasas: { bcv: number; binanceBuy: number; binanceSell: number };
   cargandoTasas: boolean;
-  modoOffline: boolean;
   ultimaSincronizacion: string;
-  tipAleatorio: string;
-  conversionHistory: { length: number };
-  onNavigateToTab: (tab: string) => void;
-  theme: {
-    heroBackground: string;
-    heroText: string;
-    heroSubtext: string;
-    accent: string;
-    accentSoft: string;
-    textPrimary: string;
-    textSecondary: string;
-    textMuted: string;
-    surface: string;
-    surfaceAlt: string;
-    border: string;
-  };
+  ratesHistory: RateHistoryPoint[];
+  onNavigateToTab: (tab: TabMode) => void;
+  theme: Theme;
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
+}
+
+interface QuickAction {
+  tab: TabMode;
+  title: string;
+  icon: React.FC<{ size?: number; color?: string }>;
 }
 
 export default function HomeTab({
   nombreUsuario,
   tasas,
   cargandoTasas,
-  modoOffline,
   ultimaSincronizacion,
-  tipAleatorio,
-  conversionHistory,
+  ratesHistory,
   onNavigateToTab,
   theme,
   fadeAnim,
   slideAnim,
 }: HomeTabProps) {
+  const stats = React.useMemo(() => getRateStats(ratesHistory), [ratesHistory]);
+  const change = stats.bcv.change;
+  const hasHistory = ratesHistory.length >= 2;
+  const spread = Math.max(0, tasas.binanceBuy - tasas.binanceSell);
+  const recomendacion = React.useMemo(
+    () => recomendarOperacion(tasas),
+    [tasas],
+  );
+
+  const quickActions: QuickAction[] = [
+    { tab: "conversor", title: "Conversor", icon: SwapIcon },
+    { tab: "comparador", title: "Comparador", icon: ScaleIcon },
+    { tab: "tendencias", title: "Tendencias", icon: TrendingUpIcon },
+    { tab: "historial", title: "Historial", icon: BookIcon },
+  ];
+
+  const shareTasas = async () => {
+    triggerHapticForAction("share");
+    const message = `Tasas en Arco\n\nBCV: Bs. ${tasas.bcv.toFixed(
+      2,
+    )}\nP2P Compra: Bs. ${tasas.binanceBuy.toFixed(
+      2,
+    )}\nP2P Venta: Bs. ${tasas.binanceSell.toFixed(2)}\n\n${
+      ultimaSincronizacion
+        ? `Actualizado: ${formatRelativeTime(ultimaSincronizacion)}`
+        : ""
+    }\n\nDescarga Arco para tus conversiones rápidas`;
+
+    try {
+      await Share.share({ message });
+    } catch (error) {
+      console.error("Error compartiendo tasas:", error);
+    }
+  };
+
+  const handleQuickAction = (tab: TabMode) => {
+    triggerHapticForAction("tab");
+    onNavigateToTab(tab);
+  };
+
   return (
     <Animated.View
       style={{
@@ -64,439 +109,512 @@ export default function HomeTab({
         transform: [{ translateY: slideAnim }],
       }}
     >
-      <View
-        style={[
-          styles.heroCard,
-          { backgroundColor: theme.heroBackground },
-        ]}
-        accessible={true}
-        accessibilityLabel="Inicio"
-        accessibilityHint={`Estado: ${
-          modoOffline
-            ? 'Modo offline, usando tasas cacheadas'
-            : 'Conexión en vivo, tasas actualizadas'
-        }`}
-      >
-        <View style={styles.heroGlow} />
-        <Text style={[styles.heroEyebrow, { color: theme.accent }]}>
-          Inicio
-        </Text>
-        <Text style={[styles.heroTitle, { color: theme.heroText }]}>
-          ¡Hola, {nombreUsuario}!
-        </Text>
-        <Text style={[styles.heroSubtitle, { color: theme.heroSubtext }]}>
-          Tasas BCV y P2P en tiempo real
-        </Text>
+      <View style={styles.greetingRow}>
+        <View style={[styles.avatar, { backgroundColor: theme.accentSoft }]}>
+          <Text style={[styles.avatarText, { color: theme.accent }]}>
+            {(nombreUsuario || "U").charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.greetingColumn}>
+          <Text style={[styles.eyebrow, { color: theme.textMuted }]}>
+            Arco • Tasas BCV y P2P en tiempo real
+          </Text>
+          <Text style={[styles.greeting, { color: theme.textPrimary }]}>
+            Hola, {nombreUsuario}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.headerWithSyncRow}>
-        <Text
-          style={[
-            styles.sectionHeading,
-            { color: theme.textPrimary, marginBottom: 0 },
-          ]}
-        >
-          Tasas
-        </Text>
-        {ultimaSincronizacion ? (
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-          >
-            <ClockIcon size={16} color={theme.textMuted} />
-            <Text
-              style={[styles.syncTimeText, { color: theme.textMuted }]}
+      <Card theme={theme} elevated>
+        <View style={styles.heroHeader}>
+          <Text style={[styles.heroEyebrow, { color: theme.textMuted }]}>
+            Tasa BCV hoy
+          </Text>
+          {cargandoTasas ? (
+            <ActivityIndicator size="small" color={theme.accent} />
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.shareButton,
+                { backgroundColor: theme.surfaceAlt },
+              ]}
+              onPress={shareTasas}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel="Compartir tasas"
+              accessibilityRole="button"
             >
-              Actualizado:{" "}
-              {new Date(ultimaSincronizacion).toLocaleTimeString(
-                "es-VE",
-                {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }
-              )}
-            </Text>
+              <ShareIcon size={18} color={theme.accent} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <AmountText
+          value={tasas.bcv.toFixed(2)}
+          prefix="Bs. "
+          size="xl"
+          color={theme.textPrimary}
+        />
+        <View style={[styles.heroFooter, { borderTopColor: theme.divider }]}>
+          {hasHistory && change !== 0 ? (
+            <Badge
+              label={`${change > 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(
+                2,
+              )}%`}
+              tone={change > 0 ? "success" : "error"}
+              theme={theme}
+            />
+          ) : null}
+          {ultimaSincronizacion ? (
+            <View style={styles.syncRow}>
+              <ClockIcon size={14} color={theme.textMuted} />
+              <Text style={[styles.syncText, { color: theme.textMuted }]}>
+                Actualizado {formatRelativeTime(ultimaSincronizacion)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {hasHistory ? (
+          <View
+            style={[styles.sparkSection, { borderTopColor: theme.divider }]}
+          >
+            <View style={styles.sparkHeader}>
+              <Text style={[styles.sparkTitle, { color: theme.textSecondary }]}>
+                Últimos 7 días
+              </Text>
+              <View style={styles.legendLeft}>
+                <View style={styles.legendItem}>
+                  <View
+                    style={[
+                      styles.legendDot,
+                      { backgroundColor: theme.accent },
+                    ]}
+                  />
+                  <Text style={[styles.legendText, { color: theme.textMuted }]}>
+                    BCV
+                  </Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View
+                    style={[styles.legendDot, { backgroundColor: theme.info }]}
+                  />
+                  <Text style={[styles.legendText, { color: theme.textMuted }]}>
+                    P2P
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <Sparkline
+              history={ratesHistory.slice(-7)}
+              theme={theme}
+              height={64}
+            />
           </View>
         ) : null}
-      </View>
+      </Card>
 
-      <View style={styles.ratesContainer}>
-        {cargandoTasas ? (
+      <TouchableOpacity
+        style={[
+          styles.recommendCard,
+          {
+            backgroundColor: theme.accentSoft,
+            borderColor: theme.successBorder,
+          },
+        ]}
+        onPress={() => handleQuickAction("comparador")}
+        activeOpacity={0.8}
+        accessible={true}
+        accessibilityLabel="Ver recomendación de cambio"
+        accessibilityRole="button"
+      >
+        <View style={styles.recommendTop}>
+          <View
+            style={[styles.recommendIcon, { backgroundColor: theme.successBg }]}
+          >
+            <WalletIcon size={18} color={theme.success} />
+          </View>
+          <Text style={[styles.recommendTitle, { color: theme.textPrimary }]}>
+            Hoy conviene
+          </Text>
+          <ArrowRightIcon size={16} color={theme.success} />
+        </View>
+
+        <View style={styles.recommendRow}>
+          <View style={styles.recommendCol}>
+            <Text style={[styles.recommendLabel, { color: theme.textMuted }]}>
+              Comprar USD
+            </Text>
+            <View style={styles.recommendValueRow}>
+              <Badge
+                label={recomendacion.compra.mejor}
+                tone={recomendacion.compra.mejor === "P2P" ? "success" : "info"}
+                theme={theme}
+              />
+              <AmountText
+                value={recomendacion.compra.valor.toFixed(2)}
+                prefix="Bs. "
+                size="md"
+                color={theme.textPrimary}
+              />
+            </View>
+            {recomendacion.compra.ahorro > 0 ? (
+              <Text style={[styles.recommendHint, { color: theme.success }]}>
+                Ahorras Bs. {recomendacion.compra.ahorro.toFixed(2)} por USD
+              </Text>
+            ) : null}
+          </View>
+
           <View
             style={[
-              styles.loadingBox,
-              { backgroundColor: theme.surfaceAlt },
+              styles.recommendDivider,
+              { backgroundColor: theme.divider },
             ]}
-            accessible={true}
-            accessibilityLabel="Cargando tasas"
-            accessibilityRole="progressbar"
+          />
+
+          <View style={styles.recommendCol}>
+            <Text style={[styles.recommendLabel, { color: theme.textMuted }]}>
+              Vender USD
+            </Text>
+            <View style={styles.recommendValueRow}>
+              <Badge
+                label={recomendacion.venta.mejor}
+                tone={recomendacion.venta.mejor === "P2P" ? "success" : "info"}
+                theme={theme}
+              />
+              <AmountText
+                value={recomendacion.venta.valor.toFixed(2)}
+                prefix="Bs. "
+                size="md"
+                color={theme.textPrimary}
+              />
+            </View>
+            {recomendacion.venta.ahorro > 0 ? (
+              <Text style={[styles.recommendHint, { color: theme.success }]}>
+                Ganas Bs. {recomendacion.venta.ahorro.toFixed(2)} por USD
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.recommendCta}>
+          <Text style={[styles.recommendCtaText, { color: theme.success }]}>
+            Comparar opciones
+          </Text>
+          <ArrowRightIcon size={14} color={theme.success} />
+        </View>
+      </TouchableOpacity>
+
+      <View style={styles.ratesRow}>
+        {cargandoTasas ? (
+          <View
+            style={[styles.loadingBox, { backgroundColor: theme.surfaceAlt }]}
           >
             <ActivityIndicator size="small" color={theme.accent} />
           </View>
         ) : (
           <>
-            <PulseAnimation pulseColor={theme.accentSoft}>
-              <View
-                style={[
-                  styles.rateBox,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                  },
-                ]}
-                accessible={true}
-                accessibilityLabel={`Tasa BCV Oficial: ${tasas.bcv.toFixed(
-                  2
-                )} bolívares por dólar`}
-              >
-                <Text
-                  style={[styles.rateLabel, { color: theme.textMuted }]}
-                >
-                  BCV Oficial
-                </Text>
-                <Text
-                  style={[
-                    styles.rateValue,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Bs. {tasas.bcv.toFixed(2)}
-                </Text>
+            <View style={[styles.rateChip, { borderColor: theme.border }]}>
+              <View style={styles.rateChipIcon}>
+                <ArrowDownIcon size={14} color={theme.success} />
               </View>
-            </PulseAnimation>
-            <View
-              style={[
-                styles.rateBox,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                },
-              ]}
-              accessible={true}
-              accessibilityLabel={`Tasa P2P Compra: ${tasas.binanceBuy.toFixed(
-                2
-              )} bolívares por dólar`}
-            >
-              <Text
-                style={[styles.rateLabel, { color: theme.textMuted }]}
-              >
+              <Text style={[styles.rateLabel, { color: theme.textMuted }]}>
                 P2P Compra
               </Text>
-              <Text
-                style={[styles.rateValue, { color: theme.textPrimary }]}
-              >
-                Bs. {tasas.binanceBuy.toFixed(2)}
-              </Text>
+              <AmountText
+                value={tasas.binanceBuy.toFixed(2)}
+                prefix="Bs. "
+                size="md"
+                color={theme.textPrimary}
+              />
             </View>
-            <View
-              style={[
-                styles.rateBox,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                },
-              ]}
-              accessible={true}
-              accessibilityLabel={`Tasa P2P Venta: ${tasas.binanceSell.toFixed(
-                2
-              )} bolívares por dólar`}
-            >
-              <Text
-                style={[styles.rateLabel, { color: theme.textMuted }]}
-              >
+            <View style={[styles.rateChip, { borderColor: theme.border }]}>
+              <View style={styles.rateChipIcon}>
+                <ArrowUpIcon size={14} color={theme.warning} />
+              </View>
+              <Text style={[styles.rateLabel, { color: theme.textMuted }]}>
                 P2P Venta
               </Text>
-              <Text
-                style={[styles.rateValue, { color: theme.textPrimary }]}
-              >
-                Bs. {tasas.binanceSell.toFixed(2)}
+              <AmountText
+                value={tasas.binanceSell.toFixed(2)}
+                prefix="Bs. "
+                size="md"
+                color={theme.textPrimary}
+              />
+            </View>
+            <View style={[styles.rateChip, { borderColor: theme.border }]}>
+              <View style={styles.rateChipIcon}>
+                <SwapVerticalIcon size={12} color={theme.accent} />
+              </View>
+              <Text style={[styles.rateLabel, { color: theme.textMuted }]}>
+                Diferencia
               </Text>
+              <AmountText
+                value={spread.toFixed(2)}
+                prefix="Bs. "
+                size="md"
+                color={theme.accent}
+              />
             </View>
           </>
         )}
       </View>
 
-      <Text
-        style={[
-          styles.sectionHeading,
-          { color: theme.textPrimary, marginTop: 14 },
-        ]}
-      >
-        Herramientas
-      </Text>
-      <View style={styles.quickActionsGrid}>
-        <TouchableOpacity
-          style={[
-            styles.quickActionCard,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-          onPress={() => {
-            triggerHapticForAction("tab");
-            onNavigateToTab("conversor");
-          }}
-          accessible={true}
-          accessibilityLabel="Conversor"
-          accessibilityHint="Ir a la sección de conversor de monedas"
-          accessibilityRole="button"
-        >
-          <View style={styles.quickActionIcon}>
-            <ExchangeIcon size={32} color={theme.textPrimary} />
-          </View>
-          <Text
+      <View style={styles.quickRow}>
+        {quickActions.map((action) => (
+          <TouchableOpacity
+            key={action.tab}
             style={[
-              styles.quickActionTitle,
-              { color: theme.textPrimary },
+              styles.quickItem,
+              { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
+            onPress={() => handleQuickAction(action.tab)}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityLabel={action.title}
+            accessibilityRole="button"
           >
-            Conversor
-          </Text>
-          <Text
-            style={[styles.quickActionDesc, { color: theme.textMuted }]}
-          >
-            Cambios al vuelo
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.quickActionCard,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-          onPress={() => {
-            triggerHapticForAction("tab");
-            onNavigateToTab("comparador");
-          }}
-          accessible={true}
-          accessibilityLabel="Comparador"
-          accessibilityHint="Ir a la sección de comparador inteligente"
-          accessibilityRole="button"
-        >
-          <View style={styles.quickActionIcon}>
-            <ScaleIcon size={32} color={theme.textPrimary} />
-          </View>
-          <Text
-            style={[
-              styles.quickActionTitle,
-              { color: theme.textPrimary },
-            ]}
-          >
-            Comparador
-          </Text>
-          <Text
-            style={[styles.quickActionDesc, { color: theme.textMuted }]}
-          >
-            Analizador con AI
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.quickActionCard,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-          onPress={() => {
-            triggerHapticForAction("tab");
-            onNavigateToTab("historial");
-          }}
-          accessible={true}
-          accessibilityLabel="Historial"
-          accessibilityHint="Ir a la sección de historial de conversiones"
-          accessibilityRole="button"
-        >
-          <View style={styles.quickActionIcon}>
-            <BookIcon size={32} color={theme.textPrimary} />
-          </View>
-          <Text
-            style={[
-              styles.quickActionTitle,
-              { color: theme.textPrimary },
-            ]}
-          >
-            Historial
-          </Text>
-          <Text
-            style={[styles.quickActionDesc, { color: theme.textMuted }]}
-          >
-            {conversionHistory.length} conversiones
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.quickActionCard,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-          onPress={() => {
-            triggerHapticForAction("tab");
-            onNavigateToTab("tendencias");
-          }}
-          accessible={true}
-          accessibilityLabel="Tendencias"
-          accessibilityHint="Ir a la sección de tendencias de tasas"
-          accessibilityRole="button"
-        >
-          <View style={styles.quickActionIcon}>
-            <TrendIcon size={32} color={theme.textPrimary} />
-          </View>
-          <Text
-            style={[
-              styles.quickActionTitle,
-              { color: theme.textPrimary },
-            ]}
-          >
-            Tendencias
-          </Text>
-          <Text
-            style={[styles.quickActionDesc, { color: theme.textMuted }]}
-          >
-            Gráfico de tasas
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {tipAleatorio ? (
-        <View
-          style={[
-            styles.tipCard,
-            {
-              backgroundColor: theme.surfaceAlt,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-          >
-            <LightbulbIcon size={24} color={theme.accent} />
-            <Text style={styles.tipTitle}>
-              Tip del día
+            <View
+              style={[styles.quickIcon, { backgroundColor: theme.accentSoft }]}
+            >
+              <action.icon size={18} color={theme.accent} />
+            </View>
+            <Text style={[styles.quickLabel, { color: theme.textSecondary }]}>
+              {action.title}
             </Text>
-          </View>
-          <Text style={[styles.tipText, { color: theme.textSecondary }]}>
-            {tipAleatorio}
-          </Text>
-        </View>
-      ) : null}
+          </TouchableOpacity>
+        ))}
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 20,
-    overflow: "hidden",
-  },
-  heroGlow: {
-    position: "absolute",
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    opacity: 0.9,
-  },
-  headerWithSyncRow: {
+  greetingRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xs,
+    gap: spacing.md,
   },
-  sectionHeading: {
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-    marginBottom: 12,
-  },
-  syncTimeText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  ratesContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
-  },
-  loadingBox: {
-    flex: 1,
-    height: 80,
-    borderRadius: 16,
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
     justifyContent: "center",
     alignItems: "center",
   },
-  rateBox: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  rateLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  rateValue: {
+  avatarText: {
     fontSize: 18,
     fontWeight: "800",
   },
-  quickActionsGrid: {
+  greetingColumn: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  eyebrow: {
+    ...type.labelSmall,
+    marginBottom: spacing.xs,
+  },
+  greeting: {
+    ...type.title,
+    lineHeight: 32,
+  },
+  heroHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 20,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
   },
-  quickActionCard: {
-    width: "48%",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+  heroEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.4,
   },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(83, 165, 72, 0.1)",
+  shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
   },
-  quickActionTitle: {
-    fontSize: 14,
+  heroFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+  },
+  syncRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  syncText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  sparkSection: {
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+  },
+  sparkHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  sparkTitle: {
+    fontSize: 11,
     fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  legendLeft: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  recommendCard: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  recommendTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  recommendIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.xs,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  recommendTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  recommendRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: spacing.md,
+  },
+  recommendCol: {
+    flex: 1,
+  },
+  recommendLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  recommendValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  recommendHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 6,
+  },
+  recommendDivider: {
+    width: 1,
+  },
+  recommendCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  recommendCtaText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  ratesRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: spacing.xxl,
+  },
+  rateChip: {
+    flex: 1,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 84,
+  },
+  rateChipIcon: {
     marginBottom: 4,
   },
-  quickActionDesc: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  tipCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  tipTitle: {
-    fontSize: 14,
+  rateLabel: {
+    fontSize: 11,
     fontWeight: "700",
-    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
-  tipText: {
-    fontSize: 14,
-    fontWeight: "500",
-    lineHeight: 20,
+  loadingBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    minHeight: 76,
+  },
+  quickRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: spacing.xxl,
+  },
+  quickItem: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    minHeight: 92,
+  },
+  quickIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.xs,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quickLabel: {
+    fontSize: 8,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
 });
