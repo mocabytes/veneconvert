@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.expo/
+android/
+ios/
+web-build/
+e2e/
+assets/
+*.config.js
+babel.config.js
+metro.config.js

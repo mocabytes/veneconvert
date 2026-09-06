@@ -1,18 +1,21 @@
-describe('Example', () => {
+describe('Arco', () => {
   beforeAll(async () => {
-    await device.launchApp();
+    await device.launchApp({ newInstance: true });
   });
 
-  beforeEach(async () => {
-    await device.reloadApp();
+  it('debe mostrar el onboarding y poder saltarlo', async () => {
+    await expect(element(by.text('Saltar'))).toBeVisible();
+    await element(by.text('Saltar')).tap();
   });
 
-  it('should have welcome screen', async () => {
-    await expect(element(by.id('welcome'))).toBeVisible();
+  it('debe mostrar el saludo en la pantalla de inicio', async () => {
+    await expect(
+      element(by.text('Tasas BCV y P2P en tiempo real'))
+    ).toBeVisible();
   });
 
-  it('should show hello screen after tap', async () => {
-    await element(by.id('hello_button')).tap();
-    await expect(element(by.text('Hello!!!'))).toBeVisible();
+  it('debe navegar al conversor desde las herramientas rápidas', async () => {
+    await element(by.label('Conversor')).tap();
+    await expect(element(by.text('Conversor rápido'))).toBeVisible();
   });
 });

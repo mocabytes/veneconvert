@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/__tests__/setup.ts'],
   transformIgnorePatterns: [
     'node_modules/(?!(@react-native|react-native)/)',
   ],

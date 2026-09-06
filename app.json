@@ -2,21 +2,11 @@
   "expo": {
     "name": "Arco",
     "slug": "arco",
-    "version": "1.0",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#FFFFFF",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#060B14"
-    },
-    "statusBar": {
-      "barStyle": "auto",
-      "backgroundColor": "#060B14",
-      "translucent": true
-    },
+    "backgroundColor": "#0B0F0E",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.mocabytes.arco"
@@ -24,13 +14,37 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#060B14"
+        "backgroundColor": "#0B0F0E"
       },
       "package": "com.mocabytes.arco"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Arco — Tasas BCV y P2P",
+      "shortName": "Arco",
+      "description": "Tasas del BCV y P2P en tiempo real, conversor, comparador y alertas.",
+      "themeColor": "#0B0F0E",
+      "backgroundColor": "#0B0F0E",
+      "display": "standalone"
     },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0B0F0E"
+        }
+      ],
+      [
+        "expo-status-bar",
+        {
+          "style": "auto",
+          "backgroundColor": "#0B0F0E",
+          "translucent": true
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "c4563bd2-78ac-4111-87dc-4b1a10fcf89d"
