@@ -5,135 +5,136 @@ import {
   View,
   TouchableOpacity,
   Animated,
+  Platform,
 } from "react-native";
-import { HomeIcon, ExchangeIcon, ScaleIcon, MenuIcon } from "./Icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HomeIcon, ExchangeIcon, ScaleIcon, GridIcon } from "./Icons";
+import { Theme } from "../theme/colors";
+import { spacing, radius } from "../theme/tokens";
+import { triggerHapticForAction } from "../utils/haptic";
+
+type Tab = 'inicio' | 'conversor' | 'comparador' | 'herramientas';
 
 interface BottomTabsProps {
-  currentTab:
-    | 'inicio'
-    | 'conversor'
-    | 'comparador'
-    | 'multimoneda'
-    | 'historial'
-    | 'tendencias'
-    | 'alertas'
-    | 'configuracion';
-  setCurrentTab: (
-    tab:
-      | 'inicio'
-      | 'conversor'
-      | 'comparador'
-      | 'multimoneda'
-      | 'historial'
-      | 'tendencias'
-      | 'alertas'
-      | 'configuracion'
-  ) => void;
-  onMorePress: () => void;
-  theme: {
-    accent: string;
-    tabBarBackground: string;
-    textMuted: string;
-    textPrimary: string;
-  };
+  currentTab: Tab | 'herramientas' | 'multimoneda' | 'historial' | 'tendencias' | 'alertas' | 'configuracion';
+  setCurrentTab: (tab: Tab | 'herramientas' | 'multimoneda' | 'historial' | 'tendencias' | 'alertas' | 'configuracion') => void;
+  alertsCount?: number;
+  theme: Theme;
 }
+
+const INDICATOR_WIDTH = 64;
+const TAB_HEIGHT = 64;
+const ACTIVE_OPACITY = 0.9;
 
 export default function BottomTabs({
   currentTab,
   setCurrentTab,
-  onMorePress,
+  alertsCount = 0,
   theme,
 }: BottomTabsProps) {
-  const iconScale = React.useRef(new Animated.Value(1)).current;
-  const iconOpacity = React.useRef(new Animated.Value(0.6)).current;
-  const indicatorPosition = React.useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
+  const tabCenters = React.useRef<number[]>([]);
+  const measuredCount = React.useRef(0);
+  const indicatorPos = React.useRef(new Animated.Value(0)).current;
+
+  const activeIndex =
+    currentTab === 'inicio'
+      ? 0
+      : currentTab === 'conversor'
+      ? 1
+      : currentTab === 'comparador'
+      ? 2
+      : 3;
+
+  const animateIndicator = React.useCallback(
+    (index: number) => {
+      const centerX = tabCenters.current[index];
+      if (centerX == null) {
+        return;
+      }
+      Animated.spring(indicatorPos, {
+        toValue: centerX - INDICATOR_WIDTH / 2,
+        tension: 180,
+        friction: 28,
+        useNativeDriver: Platform.OS !== "web",
+      }).start();
+    },
+    [indicatorPos]
+  );
+
+  const handleTabLayout = React.useCallback(
+    (index: number, x: number, width: number) => {
+      tabCenters.current[index] = x + width / 2;
+      measuredCount.current += 1;
+      if (measuredCount.current >= 4) {
+        animateIndicator(activeIndex);
+      } else if (index === activeIndex) {
+        indicatorPos.setValue(
+          tabCenters.current[index] - INDICATOR_WIDTH / 2
+        );
+      }
+    },
+    [activeIndex, animateIndicator, indicatorPos]
+  );
 
   React.useEffect(() => {
-    Animated.sequence([
-      Animated.timing(iconScale, {
-        toValue: 1.15,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(iconScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    Animated.timing(iconOpacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-
-    const tabPositions = {
-      inicio: 0,
-      conversor: 1,
-      comparador: 2,
-      multimoneda: 3,
-      historial: 4,
-      tendencias: 5,
-      alertas: 6,
-      configuracion: 7,
-    };
-    Animated.spring(indicatorPosition, {
-      toValue: tabPositions[currentTab],
-      tension: 50,
-      friction: 7,
-      useNativeDriver: true,
-    }).start();
-  }, [currentTab, iconScale, iconOpacity, indicatorPosition]);
-
-  const obtenerFondoConOpacidad = (hexColor: string, opacidadHex: string) => {
-    if (hexColor.startsWith("#")) {
-      return `${hexColor.slice(0, 7)}${opacidadHex}`;
+    if (tabCenters.current[activeIndex] != null) {
+      animateIndicator(activeIndex);
     }
-    return hexColor;
-  };
+  }, [activeIndex, animateIndicator]);
 
   const renderTab = (
-    tab: "inicio" | "conversor" | "comparador" | "configuracion",
+    tab: Tab,
     label: string,
-    IconComponent: React.FC<{ size?: number; color?: string }>
+    IconComponent: React.FC<{ size?: number; color?: string }>,
+    index: number,
+    showDot = false
   ) => {
-    const isActive = currentTab === tab;
+    const isActive = activeIndex === index;
+
+    const hoverProps =
+      Platform.OS === "web"
+        ? ({ onMouseEnter: () => animateIndicator(index) } as any)
+        : {};
 
     return (
       <TouchableOpacity
         key={tab}
-        style={[
-          styles.tabButton,
-          isActive && {
-            backgroundColor: obtenerFondoConOpacidad(theme.accent, "20"),
-          },
-        ]}
-        onPress={() => setCurrentTab(tab)}
-        activeOpacity={0.7}
+        style={styles.tabButton}
+        onPress={() => {
+          triggerHapticForAction("tab");
+          setCurrentTab(tab);
+        }}
+        onLayout={(e) =>
+          handleTabLayout(
+            index,
+            e.nativeEvent.layout.x,
+            e.nativeEvent.layout.width
+          )
+        }
+        {...hoverProps}
+        activeOpacity={ACTIVE_OPACITY}
         accessible={true}
         accessibilityLabel={label}
         accessibilityHint={`Ir a la sección de ${label.toLowerCase()}`}
         accessibilityRole="tab"
         accessibilityState={{ selected: isActive }}
       >
-        <Animated.View
-          style={[
-            styles.iconCircle,
-            isActive && { transform: [{ scale: iconScale }] },
-          ]}
-        >
-          <Animated.View style={{ opacity: iconOpacity }}>
-            <IconComponent
-              size={24}
-              color={isActive ? theme.accent : theme.textPrimary}
+        <View style={styles.iconArea}>
+          <IconComponent
+            size={24}
+            color={isActive ? theme.accent : theme.textMuted}
+          />
+          {showDot && alertsCount > 0 ? (
+            <View
+              style={[styles.dot, { backgroundColor: theme.accent }]}
             />
-          </Animated.View>
-        </Animated.View>
+          ) : null}
+        </View>
         <Text
           style={[
             styles.tabText,
-            isActive && { color: theme.accent, fontWeight: "800" },
+            { color: isActive ? theme.accent : theme.textMuted },
           ]}
         >
           {label}
@@ -143,75 +144,87 @@ export default function BottomTabs({
   };
 
   return (
-    /* Corregimos asignando el color estricto del tema para bloquear transparencias indeseadas */
     <View
       style={[
         styles.tabBar,
         {
           backgroundColor: theme.tabBarBackground,
-          borderColor: obtenerFondoConOpacidad(theme.textPrimary, "15"),
+          borderTopColor: theme.border,
+          paddingBottom: Math.max(insets.bottom, spacing.sm),
         },
       ]}
+      {...(Platform.OS === "web"
+        ? ({ onMouseLeave: () => animateIndicator(activeIndex) } as any)
+        : {})}
     >
-      {renderTab("inicio", "Inicio", HomeIcon)}
-      {renderTab("conversor", "Conversor", ExchangeIcon)}
-      {renderTab("comparador", "Comparador", ScaleIcon)}
-      <TouchableOpacity
-        style={styles.tabButton}
-        onPress={onMorePress}
-        activeOpacity={0.7}
-        accessible={true}
-        accessibilityLabel="Más"
-        accessibilityHint="Abrir menú"
-        accessibilityRole="button"
-      >
-        <View style={styles.iconCircle}>
-          <MenuIcon size={24} color={theme.textPrimary} />
-        </View>
-        <Text style={styles.tabText}>Más</Text>
-      </TouchableOpacity>
+      <View style={styles.inner}>
+        <Animated.View
+          style={[
+            styles.indicator,
+            {
+              backgroundColor: theme.accentSoft,
+              height: 36,
+            },
+          ]}
+        />
+        {renderTab("inicio", "Inicio", HomeIcon, 0)}
+        {renderTab("conversor", "Conversor", ExchangeIcon, 1)}
+        {renderTab("comparador", "Comparador", ScaleIcon, 2)}
+        {renderTab("herramientas", "Herramientas", GridIcon, 3, true)}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    flexDirection: "row",
-    alignSelf: "center",
-    width: "92%",
     position: "absolute",
-    bottom: 28,
-    padding: 6,
-    borderRadius: 32,
-    gap: 4,
-    borderWidth: 1,
-    shadowColor: "#53A548",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 16,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  inner: {
+    flexDirection: "row",
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+  },
+  indicator: {
+    position: "absolute",
+    top: 10,
+    left: 0,
+    width: INDICATOR_WIDTH,
+    borderRadius: radius.pill,
+    overflow: "hidden",
   },
   tabButton: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 24,
-    paddingVertical: 12,
-    minHeight: 56,
+    paddingVertical: spacing.sm,
+    height: TAB_HEIGHT,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  iconArea: {
+    width: INDICATOR_WIDTH - 8,
+    height: 32,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
   },
-  iconText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  dot: {
+    position: "absolute",
+    top: 3,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
   tabText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94A3B8',
-    letterSpacing: 0.3,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
 });

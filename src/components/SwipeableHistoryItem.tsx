@@ -7,15 +7,15 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  Platform,
 } from "react-native";
 import { ConversionRecord } from "../utils/history";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { lightTheme, darkTheme } from "../theme/colors";
 
 interface SwipeableHistoryItemProps {
   record: ConversionRecord;
   onDelete: () => void;
   onShare: () => void;
+  onRepeat: () => void;
   theme: {
     surface: string;
     surfaceAlt: string;
@@ -24,6 +24,7 @@ interface SwipeableHistoryItemProps {
     textMuted: string;
     accent: string;
     success: string;
+    error: string;
     border: string;
   };
 }
@@ -35,9 +36,11 @@ export default function SwipeableHistoryItem({
   record,
   onDelete,
   onShare,
+  onRepeat,
   theme,
 }: SwipeableHistoryItemProps) {
   const translateX = useRef(new Animated.Value(0)).current;
+  const isOpen = useRef(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -45,24 +48,31 @@ export default function SwipeableHistoryItem({
         return Math.abs(gestureState.dx) > 8;
       },
       onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dx < 0) {
-          translateX.setValue(Math.max(gestureState.dx, -SWIPE_THRESHOLD * 2));
-        }
+        const base = isOpen.current ? -SWIPE_THRESHOLD * 2 : 0;
+        const next = Math.min(
+          0,
+          Math.max(-SWIPE_THRESHOLD * 2, base + gestureState.dx)
+        );
+        translateX.setValue(next);
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -SWIPE_THRESHOLD) {
+        const base = isOpen.current ? -SWIPE_THRESHOLD * 2 : 0;
+        const settle = base + gestureState.dx;
+        if (settle < -SWIPE_THRESHOLD) {
+          isOpen.current = true;
           Animated.spring(translateX, {
-            toValue: -SWIPE_THRESHOLD,
-            tension: 50,
-            friction: 8,
-            useNativeDriver: true,
+            toValue: -SWIPE_THRESHOLD * 2,
+            tension: 45,
+            friction: 6,
+            useNativeDriver: Platform.OS !== "web",
           }).start();
         } else {
+          isOpen.current = false;
           Animated.spring(translateX, {
             toValue: 0,
-            tension: 50,
-            friction: 8,
-            useNativeDriver: true,
+            tension: 45,
+            friction: 6,
+            useNativeDriver: Platform.OS !== "web",
           }).start();
         }
       },
@@ -70,11 +80,12 @@ export default function SwipeableHistoryItem({
   ).current;
 
   const handleReset = () => {
+    isOpen.current = false;
     Animated.spring(translateX, {
       toValue: 0,
-      tension: 50,
-      friction: 8,
-      useNativeDriver: true,
+      tension: 45,
+      friction: 6,
+      useNativeDriver: Platform.OS !== "web",
     }).start();
   };
 
@@ -88,21 +99,22 @@ export default function SwipeableHistoryItem({
     handleReset();
   };
 
+  const handlePress = () => {
+    if (isOpen.current) {
+      handleReset();
+    } else {
+      onRepeat();
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.actionsContainer,
-          {
-            transform: [{ translateX }],
-          },
-        ]}
-      >
+      <View style={styles.actionsContainer}>
         <TouchableOpacity
           style={[
             styles.actionButton,
             styles.shareButton,
-            { backgroundColor: theme.accent },
+            { backgroundColor: theme.success },
           ]}
           onPress={handleShare}
         >
@@ -112,13 +124,13 @@ export default function SwipeableHistoryItem({
           style={[
             styles.actionButton,
             styles.deleteButton,
-            { backgroundColor: '#EF4444' },
+            { backgroundColor: theme.error },
           ]}
           onPress={handleDelete}
         >
           <Text style={styles.actionButtonText}>Eliminar</Text>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <Animated.View
         style={[
@@ -133,24 +145,42 @@ export default function SwipeableHistoryItem({
       >
         <TouchableOpacity
           style={styles.content}
-          onPress={handleReset}
-          activeOpacity={1}
+          onPress={handlePress}
+          activeOpacity={0.7}
         >
           <View style={styles.header}>
-            <Text style={[styles.type, { color: theme.textSecondary }]}>
-              {record.type.replace(/_/g, " ")}
+            <Text
+              style={[
+                styles.type,
+                { color: theme.textSecondary, textTransform: "capitalize" },
+              ]}
+            >
+              {record.type.replace(/_/g, " ").toLowerCase()}
             </Text>
             <Text style={[styles.date, { color: theme.textMuted }]}>
-              {new Date(record.timestamp).toLocaleDateString("es-VE")}
+              {new Date(record.timestamp).toLocaleDateString("es-VE", {
+                day: "2-digit",
+                month: "short",
+              })}
             </Text>
           </View>
 
           <View style={styles.conversion}>
-            <Text style={[styles.amount, { color: theme.textPrimary }]}>
+            <Text
+              style={[
+                styles.amount,
+                { color: theme.textPrimary, fontVariant: ["tabular-nums"] },
+              ]}
+            >
               {record.fromAmount.toFixed(2)} {record.fromCurrency}
             </Text>
             <Text style={[styles.arrow, { color: theme.textMuted }]}>→</Text>
-            <Text style={[styles.amount, { color: theme.textPrimary }]}>
+            <Text
+              style={[
+                styles.amount,
+                { color: theme.textPrimary, fontVariant: ["tabular-nums"] },
+              ]}
+            >
               {record.toAmount.toFixed(2)} {record.toCurrency}
             </Text>
           </View>
@@ -160,7 +190,7 @@ export default function SwipeableHistoryItem({
               Tasa:
             </Text>
             <Text style={[styles.rateValue, { color: theme.success }]}>
-              {record.rateType} ({record.rateUsed.toFixed(2)})
+              {record.rateType} ({record.rateUsed.toFixed(2)}
             </Text>
           </View>
         </TouchableOpacity>
@@ -194,15 +224,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   shareButton: {
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   deleteButton: {
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
   },
   contentContainer: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
   },
