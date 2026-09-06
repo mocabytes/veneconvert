@@ -20,7 +20,7 @@ const toneStyles = {
   accent: "accent",
 } as const;
 
-export default function Badge({
+function Badge({
   label,
   tone = "neutral",
   icon,
@@ -63,3 +63,5 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
 });
+
+export default React.memo(Badge);

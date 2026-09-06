@@ -11,7 +11,7 @@ interface ScreenHeaderProps {
   style?: ViewStyle;
 }
 
-export default function ScreenHeader({
+function ScreenHeader({
   title,
   subtitle,
   theme,
@@ -60,3 +60,5 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
 });
+
+export default React.memo(ScreenHeader);

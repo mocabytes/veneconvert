@@ -42,7 +42,7 @@ function TabButton({
   showBadge,
   badgeCount,
   theme,
-  onPress,
+  onSelect,
 }: {
   tab: Tab;
   label: string;
@@ -51,9 +51,14 @@ function TabButton({
   showBadge: boolean;
   badgeCount: number;
   theme: Theme;
-  onPress: () => void;
+  onSelect: (tab: Tab) => void;
 }) {
   const press = React.useRef(new Animated.Value(1)).current;
+
+  const handlePress = React.useCallback(() => {
+    triggerHapticForAction("tab");
+    onSelect(tab);
+  }, [onSelect, tab]);
 
   const pressIn = () => {
     Animated.spring(press, {
@@ -78,7 +83,7 @@ function TabButton({
       <TouchableOpacity
         key={tab}
         style={styles.tabButton}
-        onPress={onPress}
+        onPress={handlePress}
         onPressIn={pressIn}
         onPressOut={pressOut}
         activeOpacity={ACTIVE_OPACITY}
@@ -119,6 +124,8 @@ function TabButton({
   );
 }
 
+const MemoTabButton = React.memo(TabButton);
+
 export default function BottomTabs({
   currentTab,
   setCurrentTab,
@@ -147,7 +154,7 @@ export default function BottomTabs({
     const isActive = activeIndex === index;
 
     return (
-      <TabButton
+      <MemoTabButton
         key={tab}
         tab={tab}
         label={label}
@@ -156,10 +163,7 @@ export default function BottomTabs({
         showBadge={showBadge}
         badgeCount={alertsCount}
         theme={theme}
-        onPress={() => {
-          triggerHapticForAction("tab");
-          setCurrentTab(tab);
-        }}
+        onSelect={setCurrentTab}
       />
     );
   };

@@ -13,7 +13,7 @@ interface StatCardProps {
   glass?: boolean;
 }
 
-export default function StatCard({
+function StatCard({
   label,
   value,
   sub,
@@ -95,3 +95,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
 });
+
+export default React.memo(StatCard);

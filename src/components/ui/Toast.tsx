@@ -11,7 +11,7 @@ interface ToastProps {
 
 const useNativeDriver = Platform.OS !== "web";
 
-export default function Toast({
+function Toast({
   message,
   theme,
   bottomOffset = 96,
@@ -100,3 +100,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+export default React.memo(Toast);

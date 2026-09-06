@@ -11,7 +11,7 @@ interface AmountTextProps {
   style?: TextProps["style"];
 }
 
-export default function AmountText({
+function AmountText({
   value,
   prefix,
   size = "xl",
@@ -68,3 +68,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+export default React.memo(AmountText);
