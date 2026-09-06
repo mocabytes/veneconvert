@@ -34,6 +34,19 @@ export const HomeIcon: React.FC<IconProps> = ({
   </Svg>
 );
 
+export const HomeFilledIcon: React.FC<IconProps> = ({
+  size = 28,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+    <Path
+      d="M4 11.5L14 3L24 11.5V23C24 24.1046 23.1046 25 22 25H6C4.89543 25 4 24.1046 4 23V11.5Z M11 25V16H17V25Z"
+      fill={color}
+      fillRule="evenodd"
+    />
+  </Svg>
+);
+
 export const ExchangeIcon: React.FC<IconProps> = ({
   size = 28,
   color = '#FFFFFF',
@@ -49,6 +62,21 @@ export const ExchangeIcon: React.FC<IconProps> = ({
   </Svg>
 );
 
+export const ExchangeFilledIcon: React.FC<IconProps> = ({
+  size = 28,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+    <Path
+      d="M7 18V6M7 6L3 10M7 6L11 10M21 10V22M21 22L25 18M21 22L17 18"
+      stroke={color}
+      strokeWidth="3.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const ScaleIcon: React.FC<IconProps> = ({
   size = 28,
   color = '#FFFFFF',
@@ -58,6 +86,21 @@ export const ScaleIcon: React.FC<IconProps> = ({
       d="M14 3V25M14 3L10 7M14 3L18 7M7 11H21M7 11V17C7 18.6569 8.34315 20 10 20H18C19.6569 20 21 18.6569 21 17V11M7 11L4 14M21 11L24 14"
       stroke={color}
       strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ScaleFilledIcon: React.FC<IconProps> = ({
+  size = 28,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+    <Path
+      d="M14 3V25M14 3L10 7M14 3L18 7M7 11H21M7 11V17C7 18.6569 8.34315 20 10 20H18C19.6569 20 21 18.6569 21 17V11M7 11L4 14M21 11L24 14"
+      stroke={color}
+      strokeWidth="3.2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -900,6 +943,18 @@ export const GridIcon: React.FC<IconProps> = ({
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </Svg>
+);
+
+export const GridFilledIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#FFFFFF',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+    <Rect x="4" y="4" width="4" height="4" rx="1.2" fill={color} />
+    <Rect x="12" y="4" width="4" height="4" rx="1.2" fill={color} />
+    <Rect x="4" y="12" width="4" height="4" rx="1.2" fill={color} />
+    <Rect x="12" y="12" width="4" height="4" rx="1.2" fill={color} />
   </Svg>
 );
 
