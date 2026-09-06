@@ -12,7 +12,7 @@ import {
   getRateStats,
 } from "../utils/ratesHistory";
 import { Theme } from "../theme/colors";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import Card from "./ui/Card";
 import StatCard from "./ui/StatCard";
@@ -208,11 +208,11 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
   periodText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
   chart: {
     marginVertical: spacing.sm,

@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Theme } from "../../theme/colors";
-import { radius } from "../../theme/tokens";
+import { radius, family } from "../../theme/tokens";
 
 interface EmptyStateProps {
   title: string;
@@ -54,13 +54,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textAlign: "center",
     marginBottom: 6,
   },
   description: {
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: family.medium,
     lineHeight: 19,
     textAlign: "center",
   },

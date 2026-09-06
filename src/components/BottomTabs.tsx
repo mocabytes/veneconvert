@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomeIcon, ExchangeIcon, ScaleIcon, GridIcon } from "./Icons";
 import { Theme } from "../theme/colors";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 import { triggerHapticForAction } from "../utils/haptic";
 
 type Tab = 'inicio' | 'conversor' | 'comparador' | 'herramientas';
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     letterSpacing: 0.2,
   },
 });

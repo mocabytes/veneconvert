@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Theme } from "../../theme/colors";
-import { spacing, type } from "../../theme/tokens";
+import { spacing, type, family } from "../../theme/tokens";
 
 interface ScreenHeaderProps {
   title: string;
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.title,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     letterSpacing: -0.4,
   },
   subtitle: {

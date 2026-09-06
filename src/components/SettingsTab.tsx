@@ -9,7 +9,7 @@ import {
 import { ThemeMode } from "../types";
 import { BeachIcon, TrashIcon, BellIcon } from "./Icons";
 import { Theme } from "../theme/colors";
-import { spacing, radius, type } from "../theme/tokens";
+import { spacing, radius, type, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import Card from "./ui/Card";
 import AmountInput from "./ui/AmountInput";
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     ...type.labelSmall,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   dataRow: {
     flexDirection: "row",

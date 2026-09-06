@@ -20,7 +20,7 @@ import { triggerHapticForAction } from "../utils/haptic";
 import { isTablet } from "../utils/responsive";
 import { TabMode } from "../types";
 import { Theme } from "../theme/colors";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import Card from "./ui/Card";
 import Badge from "./ui/Badge";
@@ -231,12 +231,12 @@ const styles = StyleSheet.create({
   },
   toolTitle: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     marginBottom: 2,
   },
   toolDescription: {
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: family.medium,
     lineHeight: 16,
   },
   toolFooter: {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   toolFooterText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   tipHeader: {
     flexDirection: "row",
@@ -265,11 +265,11 @@ const styles = StyleSheet.create({
   },
   tipTitle: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   tipText: {
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: "500",
+    fontFamily: family.medium,
   },
 });

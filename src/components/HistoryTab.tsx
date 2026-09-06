@@ -15,7 +15,7 @@ import {
   parseDateInput,
 } from "../utils/ratesHistory";
 import { Theme } from "../theme/colors";
-import { radius, spacing } from "../theme/tokens";
+import { radius, spacing, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import EmptyState from "./ui/EmptyState";
 import SegmentedControl from "./ui/SegmentedControl";
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginTop: spacing.sm,
   },
   resultHeader: {
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
   },
   resultDate: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     flex: 1,
   },
   note: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginBottom: spacing.sm,
   },
   resultRow: {
@@ -367,18 +367,18 @@ const styles = StyleSheet.create({
   },
   resultKey: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   resultValue: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     fontVariant: ["tabular-nums"],
   },
   caption: {
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginTop: spacing.sm,
   },
 });

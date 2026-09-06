@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Platform, StyleSheet, Text } from "react-native";
 import { Theme } from "../../theme/colors";
-import { spacing, radius, type } from "../../theme/tokens";
+import { spacing, radius, type, family } from "../../theme/tokens";
 
 interface ToastProps {
   message: string | null;
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   text: {
     ...type.body,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     textAlign: "center",
   },
 });

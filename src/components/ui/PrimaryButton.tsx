@@ -7,7 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { Theme } from "../../theme/colors";
-import { radius, spacing } from "../../theme/tokens";
+import { radius, spacing, family } from "../../theme/tokens";
 
 const useNativeDriver = Platform.OS !== "web";
 
@@ -91,7 +91,7 @@ export default function PrimaryButton({
           style={[
             styles.text,
             { color: textColor },
-            variant === "primary" && { fontWeight: "800" },
+            variant === "primary" && { fontFamily: family.extrabold },
           ]}
         >
           {title}
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: family.bold,
     letterSpacing: 0.2,
   },
   disabled: {

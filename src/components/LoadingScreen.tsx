@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { family } from "../theme/tokens";
 
 const { width } = Dimensions.get("window");
 const useNativeDriver = Platform.OS !== "web";
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 32,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     color: "#F4F7F5",
     letterSpacing: -0.5,
     marginBottom: 8,
@@ -269,6 +270,6 @@ const styles = StyleSheet.create({
     color: "#6B7A74",
     textAlign: "center",
     paddingHorizontal: 32,
-    fontWeight: "500",
+    fontFamily: family.medium,
   },
 });

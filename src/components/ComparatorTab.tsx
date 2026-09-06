@@ -11,7 +11,7 @@ import {
   ResultadoAnalisis,
 } from "../utils/calculations";
 import { Theme } from "../theme/colors";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import ClearButton from "./ui/ClearButton";
 import AmountInput from "./ui/AmountInput";
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginBottom: spacing.sm,
     marginLeft: 2,
   },
@@ -327,19 +327,19 @@ const styles = StyleSheet.create({
   },
   diagnosisTitle: {
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   diagnosisText: {
     fontSize: 17,
-    fontWeight: "700",
+    fontFamily: family.bold,
     lineHeight: 24,
     marginBottom: 10,
   },
   diagnosisAhorro: {
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     fontVariant: ["tabular-nums"],
     marginBottom: spacing.xs,
   },
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   desgloseTitle: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: spacing.sm,
@@ -372,12 +372,12 @@ const styles = StyleSheet.create({
   },
   desgloseNombre: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     flex: 1,
   },
   desgloseCosto: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textAlign: "right",
     fontVariant: ["tabular-nums"],
   },
@@ -398,14 +398,14 @@ const styles = StyleSheet.create({
   },
   rateLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: 4,
   },
   rateValue: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: family.bold,
     fontVariant: ["tabular-nums"],
   },
 });

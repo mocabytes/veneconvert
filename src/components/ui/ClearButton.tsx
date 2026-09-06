@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Theme } from "../../theme/colors";
 import { TrashIcon } from "../Icons";
-import { spacing, radius } from "../../theme/tokens";
+import { spacing, radius, family } from "../../theme/tokens";
 
 interface ClearButtonProps {
   onPress: () => void;
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
 });

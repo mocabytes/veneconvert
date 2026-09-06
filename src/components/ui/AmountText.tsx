@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TextProps } from "react-native";
+import { family } from "../../theme/tokens";
 
 interface AmountTextProps {
   value: string;
@@ -45,12 +46,12 @@ export default function AmountText({
 
 const styles = StyleSheet.create({
   base: {
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     letterSpacing: -0.8,
     fontVariant: ["tabular-nums"],
   },
   prefix: {
-    fontWeight: "700",
+    fontFamily: family.bold,
     letterSpacing: 0,
     opacity: 0.75,
   },

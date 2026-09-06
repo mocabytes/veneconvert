@@ -23,7 +23,7 @@ import {
 } from "./Icons";
 import { Theme } from "../theme/colors";
 import { ResolvedTheme } from "../types";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
   scrollView: {
     flex: 1,
@@ -265,13 +265,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     textAlign: "center",
     letterSpacing: -0.5,
     marginBottom: 14,
   },
   description: {
     fontSize: 15,
+    fontFamily: family.regular,
     textAlign: "center",
     lineHeight: 23,
     paddingHorizontal: 8,
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.lg,
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
   footer: {
     paddingHorizontal: spacing.xxl,
@@ -315,6 +316,6 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
   },
 });

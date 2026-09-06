@@ -25,7 +25,7 @@ import {
 import { formatRelativeTime } from "../utils/time";
 import { recomendarOperacion } from "../utils/recomendacion";
 import { Theme } from "../theme/colors";
-import { spacing, radius, type } from "../theme/tokens";
+import { spacing, radius, type, family } from "../theme/tokens";
 import { RateHistoryPoint, getRateStats } from "../utils/ratesHistory";
 import { TabMode } from "../types";
 import Card from "./ui/Card";
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
   },
   greetingColumn: {
     flex: 1,
@@ -418,6 +418,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...type.title,
+    fontFamily: family.extrabold,
     lineHeight: 32,
   },
   heroHeader: {
@@ -428,7 +429,7 @@ const styles = StyleSheet.create({
   },
   heroEyebrow: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 1.4,
   },
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
   sparkSection: {
     marginTop: spacing.lg,
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   },
   sparkTitle: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 10,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
   recommendCard: {
     borderWidth: 1,
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
   recommendTitle: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
   },
   recommendRow: {
     flexDirection: "row",
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
   },
   recommendLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: 6,
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
   },
   recommendHint: {
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginTop: 6,
   },
   recommendDivider: {
@@ -552,7 +553,7 @@ const styles = StyleSheet.create({
   },
   recommendCtaText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   ratesRow: {
     flexDirection: "row",
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
   },
   rateLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: 6,
@@ -613,7 +614,7 @@ const styles = StyleSheet.create({
   },
   quickLabel: {
     fontSize: 8,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },

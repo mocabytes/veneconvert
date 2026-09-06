@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Theme } from "../../theme/colors";
-import { spacing, radius } from "../../theme/tokens";
+import { spacing, radius, family } from "../../theme/tokens";
 import { WifiOffIcon } from "../Icons";
 
 interface OfflineBannerProps {
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   retry: {
     borderWidth: 1,
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
 });

@@ -10,7 +10,7 @@ import { RateAlert } from "../utils/alerts";
 import { TrashIcon, BellIcon, PlusIcon } from "./Icons";
 import { parseNumber } from "../utils/parseNumber";
 import { Theme } from "../theme/colors";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import Card from "./ui/Card";
 import SegmentedControl from "./ui/SegmentedControl";
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
     marginBottom: 10,
   },
   segment: {
@@ -269,16 +269,16 @@ const styles = StyleSheet.create({
   },
   alertType: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   alertCondition: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: family.bold,
     fontVariant: ["tabular-nums"],
   },
   alertTriggered: {
     fontSize: 11,
-    fontWeight: "500",
+    fontFamily: family.medium,
   },
   alertItemActions: {
     flexDirection: "row",

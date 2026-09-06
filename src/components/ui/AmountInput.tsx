@@ -8,7 +8,7 @@ import {
   KeyboardTypeOptions,
 } from "react-native";
 import { Theme } from "../../theme/colors";
-import { radius, spacing } from "../../theme/tokens";
+import { radius, spacing, family } from "../../theme/tokens";
 
 interface AmountInputProps {
   label?: string;
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginBottom: spacing.sm,
     marginLeft: 2,
   },
@@ -109,14 +109,14 @@ const styles = StyleSheet.create({
   },
   prefix: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: family.bold,
     marginRight: 12,
   },
   input: {
     flex: 1,
     height: "100%",
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     fontVariant: ["tabular-nums"],
   },
 });

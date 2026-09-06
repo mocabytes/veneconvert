@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { ConversionRecord } from "../utils/history";
+import { family } from "../theme/tokens";
 
 interface SwipeableHistoryItemProps {
   record: ConversionRecord;
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   shareButton: {
     borderTopLeftRadius: 16,
@@ -246,11 +247,12 @@ const styles = StyleSheet.create({
   },
   type: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     textTransform: "uppercase",
   },
   date: {
     fontSize: 11,
+    fontFamily: family.regular,
   },
   conversion: {
     flexDirection: "row",
@@ -261,10 +263,11 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: family.bold,
   },
   arrow: {
     fontSize: 16,
+    fontFamily: family.regular,
   },
   rateInfo: {
     flexDirection: "row",
@@ -274,9 +277,10 @@ const styles = StyleSheet.create({
   },
   rateLabel: {
     fontSize: 12,
+    fontFamily: family.regular,
   },
   rateValue: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
   },
 });

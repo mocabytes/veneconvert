@@ -32,16 +32,16 @@ export const family = {
 } as const;
 
 export const type = {
-  display: { fontSize: 36, lineHeight: 44 },
-  title: { fontSize: 22, lineHeight: 28 },
-  heading: { fontSize: 18, lineHeight: 24 },
-  body: { fontSize: 14, lineHeight: 21 },
-  caption: { fontSize: 12, lineHeight: 18 },
-  micro: { fontSize: 11, lineHeight: 16 },
-  label: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
-  labelSmall: { fontSize: 11, lineHeight: 16, fontWeight: "600" },
-  bodySmall: { fontSize: 12, lineHeight: 16 },
-  inverse: { fontSize: 14, lineHeight: 20, color: "#FFFFFF" },
+  display: { fontSize: 36, lineHeight: 44, fontFamily: family.regular },
+  title: { fontSize: 22, lineHeight: 28, fontFamily: family.regular },
+  heading: { fontSize: 18, lineHeight: 24, fontFamily: family.regular },
+  body: { fontSize: 14, lineHeight: 21, fontFamily: family.regular },
+  caption: { fontSize: 12, lineHeight: 18, fontFamily: family.regular },
+  micro: { fontSize: 11, lineHeight: 16, fontFamily: family.regular },
+  label: { fontSize: 13, lineHeight: 18, fontFamily: family.semibold },
+  labelSmall: { fontSize: 11, lineHeight: 16, fontFamily: family.semibold },
+  bodySmall: { fontSize: 12, lineHeight: 16, fontFamily: family.regular },
+  inverse: { fontSize: 14, lineHeight: 20, color: "#FFFFFF", fontFamily: family.regular },
 } as const;
 
 export const layout = {

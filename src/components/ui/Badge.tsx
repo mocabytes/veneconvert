@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Theme } from "../../theme/colors";
+import { family } from "../../theme/tokens";
 
 interface BadgeProps {
   label: string;
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: family.bold,
     fontVariant: ["tabular-nums"],
   },
 });

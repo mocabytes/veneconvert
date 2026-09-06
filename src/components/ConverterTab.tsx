@@ -13,7 +13,7 @@ import ClearButton from "./ui/ClearButton";
 import AmountInput from "./ui/AmountInput";
 import { CopyIcon } from "./Icons";
 import { triggerHapticForAction } from "../utils/haptic";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 
 interface ConverterTabProps {
   bs: string;
@@ -174,14 +174,14 @@ const styles = StyleSheet.create({
   },
   rateKey: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: 4,
   },
   rateValue: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: family.bold,
     fontVariant: ["tabular-nums"],
   },
 });

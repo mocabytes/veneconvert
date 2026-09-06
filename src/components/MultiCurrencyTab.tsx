@@ -17,7 +17,7 @@ import { SwapIcon, ChevronDownIcon } from "./Icons";
 import AnimatedButton from "./AnimatedButton";
 import { getFlagIcon } from "./Icons";
 import { Theme } from "../theme/colors";
-import { spacing, radius } from "../theme/tokens";
+import { spacing, radius, family } from "../theme/tokens";
 import ScreenHeader from "./ui/ScreenHeader";
 import ClearButton from "./ui/ClearButton";
 import AmountInput from "./ui/AmountInput";
@@ -284,7 +284,7 @@ export default function MultiCurrencyTab({
               <Text
                 style={[
                   styles.resultAmount,
-                  { color: theme.success, fontWeight: "800" },
+                  { color: theme.success, fontFamily: family.extrabold },
                 ]}
                 adjustsFontSizeToFit
                 numberOfLines={1}
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   selectorLabel: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     marginBottom: spacing.sm,
     marginLeft: 2,
   },
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   selectorCode: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: family.bold,
     flex: 1,
   },
   swapButton: {
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: family.bold,
     marginBottom: spacing.md,
   },
   modalList: {
@@ -392,12 +392,12 @@ const styles = StyleSheet.create({
   },
   modalCode: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: family.bold,
     width: 48,
   },
   modalName: {
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: family.medium,
     flex: 1,
   },
   selectedDot: {
@@ -417,13 +417,13 @@ const styles = StyleSheet.create({
   },
   resultLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   resultRate: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     fontVariant: ["tabular-nums"],
   },
   resultAmountRow: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   resultAmount: {
     fontSize: 28,
-    fontWeight: "800",
+    fontFamily: family.extrabold,
     letterSpacing: -0.6,
     fontVariant: ["tabular-nums"],
     flex: 1,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   resultFrom: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     fontVariant: ["tabular-nums"],
   },
 });

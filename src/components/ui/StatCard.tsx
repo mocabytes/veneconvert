@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Theme } from "../../theme/colors";
-import { radius, spacing } from "../../theme/tokens";
+import { radius, spacing, family } from "../../theme/tokens";
 
 interface StatCardProps {
   label: string;
@@ -69,14 +69,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: family.bold,
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: 6,
   },
   value: {
     fontSize: 17,
-    fontWeight: "700",
+    fontFamily: family.bold,
     letterSpacing: -0.3,
     fontVariant: ["tabular-nums"],
   },

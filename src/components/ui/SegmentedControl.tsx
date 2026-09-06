@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Theme } from "../../theme/colors";
-import { radius, spacing } from "../../theme/tokens";
+import { radius, spacing, family } from "../../theme/tokens";
 
 export interface SegmentedOption<T extends string> {
   label: string;
@@ -44,7 +44,7 @@ export default function SegmentedControl<T extends string>({
               style={[
                 styles.label,
                 { color: theme.textMuted },
-                isActive && { color: theme.onAccent, fontWeight: "700" },
+                isActive && { color: theme.onAccent, fontFamily: family.bold },
               ]}
             >
               {option.label}
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: family.semibold,
     letterSpacing: 0.2,
   },
 });
