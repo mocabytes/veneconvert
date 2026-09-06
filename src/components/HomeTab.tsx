@@ -23,7 +23,6 @@ import {
   SwapVerticalIcon,
 } from "./Icons";
 import { formatRelativeTime } from "../utils/time";
-import { recomendarOperacion } from "../utils/recomendacion";
 import { Theme } from "../theme/colors";
 import { spacing, radius, type, family } from "../theme/tokens";
 import { RateHistoryPoint, getRateStats } from "../utils/ratesHistory";
@@ -33,7 +32,6 @@ import AmountText from "./ui/AmountText";
 import AnimatedRateNumber from "./ui/AnimatedRateNumber";
 import Badge from "./ui/Badge";
 import Sparkline from "./ui/Sparkline";
-import StaggerIn from "./ui/StaggerIn";
 
 interface HomeTabProps {
   nombreUsuario: string;
@@ -45,12 +43,6 @@ interface HomeTabProps {
   theme: Theme;
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
-}
-
-interface QuickAction {
-  tab: TabMode;
-  title: string;
-  icon: React.FC<{ size?: number; color?: string }>;
 }
 
 export default function HomeTab({
@@ -68,17 +60,6 @@ export default function HomeTab({
   const change = stats.bcv.change;
   const hasHistory = ratesHistory.length >= 2;
   const spread = Math.max(0, tasas.binanceBuy - tasas.binanceSell);
-  const recomendacion = React.useMemo(
-    () => recomendarOperacion(tasas),
-    [tasas],
-  );
-
-  const quickActions: QuickAction[] = [
-    { tab: "conversor", title: "Conversor", icon: SwapIcon },
-    { tab: "comparador", title: "Comparador", icon: ScaleIcon },
-    { tab: "tendencias", title: "Tendencias", icon: TrendingUpIcon },
-    { tab: "historial", title: "Historial", icon: BookIcon },
-  ];
 
   const shareTasas = async () => {
     triggerHapticForAction("share");
@@ -97,11 +78,6 @@ export default function HomeTab({
     } catch (error) {
       console.error("Error compartiendo tasas:", error);
     }
-  };
-
-  const handleQuickAction = (tab: TabMode) => {
-    triggerHapticForAction("tab");
-    onNavigateToTab(tab);
   };
 
   return (
@@ -205,7 +181,10 @@ export default function HomeTab({
                 </View>
                 <View style={styles.legendItem}>
                   <View
-                    style={[styles.legendDot, { backgroundColor: theme.info }]}
+                    style={[
+                      styles.legendDot,
+                      { backgroundColor: theme.info },
+                    ]}
                   />
                   <Text style={[styles.legendText, { color: theme.textMuted }]}>
                     P2P
@@ -221,97 +200,6 @@ export default function HomeTab({
           </View>
         ) : null}
       </Card>
-
-      <TouchableOpacity
-        style={[
-          styles.recommendCard,
-          {
-            backgroundColor: theme.accentSoft,
-            borderColor: theme.successBorder,
-          },
-        ]}
-        onPress={() => handleQuickAction("comparador")}
-        activeOpacity={0.8}
-        accessible={true}
-        accessibilityLabel="Ver recomendación de cambio"
-        accessibilityRole="button"
-      >
-        <View style={styles.recommendTop}>
-          <View
-            style={[styles.recommendIcon, { backgroundColor: theme.successBg }]}
-          >
-            <WalletIcon size={18} color={theme.success} />
-          </View>
-          <Text style={[styles.recommendTitle, { color: theme.textPrimary }]}>
-            Hoy conviene
-          </Text>
-          <ArrowRightIcon size={16} color={theme.success} />
-        </View>
-
-        <View style={styles.recommendRow}>
-          <View style={styles.recommendCol}>
-            <Text style={[styles.recommendLabel, { color: theme.textMuted }]}>
-              Comprar USD
-            </Text>
-            <View style={styles.recommendValueRow}>
-              <Badge
-                label={recomendacion.compra.mejor}
-                tone={recomendacion.compra.mejor === "P2P" ? "success" : "info"}
-                theme={theme}
-              />
-              <AmountText
-                value={recomendacion.compra.valor.toFixed(2)}
-                prefix="Bs. "
-                size="md"
-                color={theme.textPrimary}
-              />
-            </View>
-            {recomendacion.compra.ahorro > 0 ? (
-              <Text style={[styles.recommendHint, { color: theme.success }]}>
-                Ahorras Bs. {recomendacion.compra.ahorro.toFixed(2)} por USD
-              </Text>
-            ) : null}
-          </View>
-
-          <View
-            style={[
-              styles.recommendDivider,
-              { backgroundColor: theme.divider },
-            ]}
-          />
-
-          <View style={styles.recommendCol}>
-            <Text style={[styles.recommendLabel, { color: theme.textMuted }]}>
-              Vender USD
-            </Text>
-            <View style={styles.recommendValueRow}>
-              <Badge
-                label={recomendacion.venta.mejor}
-                tone={recomendacion.venta.mejor === "P2P" ? "success" : "info"}
-                theme={theme}
-              />
-              <AmountText
-                value={recomendacion.venta.valor.toFixed(2)}
-                prefix="Bs. "
-                size="md"
-                color={theme.textPrimary}
-              />
-            </View>
-            {recomendacion.venta.ahorro > 0 ? (
-              <Text style={[styles.recommendHint, { color: theme.success }]}>
-                Ganas Bs. {recomendacion.venta.ahorro.toFixed(2)} por USD
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.recommendCta}>
-          <Text style={[styles.recommendCtaText, { color: theme.success }]}>
-            Comparar opciones
-          </Text>
-          <ArrowRightIcon size={14} color={theme.success} />
-        </View>
-      </TouchableOpacity>
 
       <View style={styles.ratesRow}>
         {cargandoTasas ? (
@@ -366,38 +254,6 @@ export default function HomeTab({
             </View>
           </>
         )}
-      </View>
-
-      <View style={styles.quickRow}>
-        {quickActions.map((action, index) => (
-          <StaggerIn
-            key={action.tab}
-            index={index}
-            style={styles.quickItemWrap}
-          >
-            <TouchableOpacity
-              style={[
-                styles.quickItem,
-                styles.quickFill,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ]}
-              onPress={() => handleQuickAction(action.tab)}
-              activeOpacity={0.7}
-              accessible={true}
-              accessibilityLabel={action.title}
-              accessibilityRole="button"
-            >
-            <View
-              style={[styles.quickIcon, { backgroundColor: theme.accentSoft }]}
-            >
-              <action.icon size={20} color={theme.accent} />
-            </View>
-            <Text style={[styles.quickLabel, { color: theme.textSecondary }]}>
-              {action.title}
-            </Text>
-            </TouchableOpacity>
-          </StaggerIn>
-        ))}
       </View>
     </Animated.View>
   );
@@ -507,69 +363,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: family.semibold,
   },
-  recommendCard: {
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  recommendTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  recommendIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.xs,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  recommendTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: family.extrabold,
-  },
-  recommendRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: spacing.md,
-  },
-  recommendCol: {
-    flex: 1,
-  },
-  recommendLabel: {
-    fontSize: 11,
-    fontFamily: family.bold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: 6,
-  },
-  recommendValueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  recommendHint: {
-    fontSize: 11,
-    fontFamily: family.semibold,
-    marginTop: 6,
-  },
-  recommendDivider: {
-    width: 1,
-  },
-  recommendCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: spacing.xs,
-    marginTop: spacing.md,
-  },
-  recommendCtaText: {
-    fontSize: 13,
-    fontFamily: family.bold,
-  },
   ratesRow: {
     flexDirection: "row",
     gap: 10,
@@ -603,39 +396,5 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.md,
     minHeight: 76,
-  },
-  quickRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: spacing.xxl,
-  },
-  quickItemWrap: {
-    flex: 1,
-  },
-  quickFill: {
-    flex: 1,
-  },
-  quickItem: {
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xs,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    minHeight: 92,
-  },
-  quickIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  quickLabel: {
-    fontSize: 8,
-    fontFamily: family.bold,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
   },
 });
