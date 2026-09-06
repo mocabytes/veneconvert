@@ -22,7 +22,7 @@ interface BottomTabsProps {
   theme: Theme;
 }
 
-const INDICATOR_WIDTH = 64;
+const INDICATOR_WIDTH = 72;
 const TAB_HEIGHT = 64;
 const ACTIVE_OPACITY = 0.9;
 
@@ -46,6 +46,98 @@ function PopIcon({
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       {children}
+    </Animated.View>
+  );
+}
+
+function TabButton({
+  tab,
+  label,
+  IconComponent,
+  isActive,
+  showBadge,
+  badgeCount,
+  theme,
+  onPress,
+  onLayout,
+}: {
+  tab: Tab;
+  label: string;
+  IconComponent: React.FC<{ size?: number; color?: string }>;
+  isActive: boolean;
+  showBadge: boolean;
+  badgeCount: number;
+  theme: Theme;
+  onPress: () => void;
+  onLayout: (x: number, width: number) => void;
+}) {
+  const press = React.useRef(new Animated.Value(1)).current;
+
+  const pressIn = () => {
+    Animated.spring(press, {
+      toValue: 0.92,
+      ...motion.pop,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
+  };
+
+  const pressOut = () => {
+    Animated.spring(press, {
+      toValue: 1,
+      ...motion.pop,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={[styles.tabButtonWrap, { transform: [{ scale: press }] }]}
+      onLayout={(e) =>
+        onLayout(e.nativeEvent.layout.x, e.nativeEvent.layout.width)
+      }
+    >
+      <TouchableOpacity
+        key={tab}
+        style={styles.tabButton}
+        onPress={onPress}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        activeOpacity={ACTIVE_OPACITY}
+        accessible={true}
+        accessibilityLabel={label}
+        accessibilityHint={`Ir a la sección de ${label.toLowerCase()}`}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isActive }}
+      >
+        <View style={styles.iconArea}>
+          <PopIcon active={isActive}>
+            <IconComponent
+              size={24}
+              color={isActive ? theme.accent : theme.textMuted}
+            />
+          </PopIcon>
+          {showBadge && badgeCount > 0 ? (
+            <View
+              style={[styles.badge, { backgroundColor: theme.accent }]}
+            >
+              <Text style={[styles.badgeText, { color: theme.onAccent }]}>
+                {badgeCount > 99 ? "99+" : String(badgeCount)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <Text
+          style={[
+            styles.tabText,
+            {
+              color: isActive ? theme.accent : theme.textSecondary,
+              fontFamily: isActive ? family.extrabold : family.semibold,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
     </Animated.View>
   );
 }
@@ -111,57 +203,26 @@ export default function BottomTabs({
     label: string,
     IconComponent: React.FC<{ size?: number; color?: string }>,
     index: number,
-    showDot = false
+    showBadge = false
   ) => {
     const isActive = activeIndex === index;
 
     return (
-      <TouchableOpacity
+      <TabButton
         key={tab}
-        style={styles.tabButton}
+        tab={tab}
+        label={label}
+        IconComponent={IconComponent}
+        isActive={isActive}
+        showBadge={showBadge}
+        badgeCount={alertsCount}
+        theme={theme}
         onPress={() => {
           triggerHapticForAction("tab");
           setCurrentTab(tab);
         }}
-        onLayout={(e) =>
-          handleTabLayout(
-            index,
-            e.nativeEvent.layout.x,
-            e.nativeEvent.layout.width
-          )
-        }
-        activeOpacity={ACTIVE_OPACITY}
-        accessible={true}
-        accessibilityLabel={label}
-        accessibilityHint={`Ir a la sección de ${label.toLowerCase()}`}
-        accessibilityRole="tab"
-        accessibilityState={{ selected: isActive }}
-      >
-        <View style={styles.iconArea}>
-          <PopIcon active={isActive}>
-            <IconComponent
-              size={24}
-              color={isActive ? theme.accent : theme.textMuted}
-            />
-          </PopIcon>
-          {showDot && alertsCount > 0 ? (
-            <View
-              style={[styles.dot, { backgroundColor: theme.accent }]}
-            />
-          ) : null}
-        </View>
-        <Text
-          style={[
-            styles.tabText,
-            {
-              color: isActive ? theme.accent : theme.textMuted,
-              fontFamily: isActive ? family.extrabold : family.semibold,
-            },
-          ]}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
+        onLayout={(x, tabWidth) => handleTabLayout(index, x, tabWidth)}
+      />
     );
   };
 
@@ -172,6 +233,7 @@ export default function BottomTabs({
         {
           backgroundColor: theme.tabBarBackground,
           borderTopColor: theme.border,
+          boxShadow: `0 -8px 24px ${theme.shadow}`,
           paddingBottom: Math.max(insets.bottom, spacing.sm),
         },
       ]}
@@ -182,7 +244,9 @@ export default function BottomTabs({
             styles.indicator,
             {
               backgroundColor: theme.accentSoft,
-              height: 36,
+              borderColor: `${theme.accent}55`,
+              boxShadow: `0 4px 16px ${theme.accent}44`,
+              height: 52,
               transform: [{ translateX: indicatorPos }],
             },
           ]}
@@ -213,14 +277,16 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: "absolute",
-    top: 10,
+    top: 6,
     left: 0,
     width: INDICATOR_WIDTH,
     borderRadius: radius.pill,
-    overflow: "hidden",
+    borderWidth: 1,
+  },
+  tabButtonWrap: {
+    flex: 1,
   },
   tabButton: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: spacing.sm,
@@ -232,15 +298,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  dot: {
+  badge: {
     position: "absolute",
-    top: 3,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: "transparent",
+    top: 0,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontFamily: family.extrabold,
+    fontVariant: ["tabular-nums"],
   },
   tabText: {
     fontSize: 12,
